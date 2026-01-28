@@ -1,8 +1,8 @@
 <?php
 // Database configuration
 $servername = "localhost";
-$db_username = "root"; // replace with your DB username
-$db_password = "";     // replace with your DB password
+$db_username = "root";
+$db_password = "";
 $dbname = "lyingin_db";
 
 // Create connection
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Handle uploaded ID file
     $id_file_path = null;
     if(isset($_FILES['id_file']) && $_FILES['id_file']['error'] === 0){
-        $targetDir = "uploads/";
+        $targetDir = __DIR__ . "/../../uploads/clinics/";
         if(!is_dir($targetDir)) mkdir($targetDir, 0755, true);
         $fileName = basename($_FILES['id_file']['name']);
         $id_file_path = $targetDir . time() . "_" . $fileName;
@@ -44,11 +44,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Insert into database
-    $stmt = $conn->prepare("INSERT INTO clinics (clinic_name, license_number, address, email, contact_number, admin_name, username, password, id_type, id_number, id_file) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssssssssss", $clinic_name, $license_number, $address, $email, $contact_number, $admin_name, $username, $password, $id_type, $id_number, $id_file_path);
+    $email_verified = 1; // Clinic email auto-verified
+    
+    $stmt = $conn->prepare("INSERT INTO clinics (clinic_name, license_number, address, email, contact_number, admin_name, username, password, id_type, id_number, id_file, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssssssssssi", $clinic_name, $license_number, $address, $email, $contact_number, $admin_name, $username, $password, $id_type, $id_number, $id_file_path, $email_verified);
 
     if ($stmt->execute()) {
-        echo json_encode(["status" => "success", "message" => "Clinic registered successfully!"]);
+        echo json_encode([
+            "status" => "success",
+            "message" => "Clinic registered successfully! You can now login.",
+            "redirect" => "/auth/login.html"
+        ]);
     } else {
         echo json_encode(["status" => "error", "message" => "Error: " . $stmt->error]);
     }
@@ -56,4 +62,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->close();
     $conn->close();
 }
-?>
+

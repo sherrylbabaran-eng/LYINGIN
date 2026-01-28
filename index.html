@@ -72,9 +72,9 @@
             <li><a href="doctors.html">Doctors</a></li>
             <li><a href="contact.html">Contact</a></li>
            <li class="nav-item">
-              <button type="button" class="btn" style="background-color: #f65cd4;color: white;" data-bs-toggle="modal" data-bs-target="#loginModal">
+              <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" class="btn" style="background-color: #f65cd4;color: white; text-decoration: none;">
                 Login
-              </button>
+              </a>
             </li>
           </ul>
           <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
@@ -86,49 +86,6 @@
 
   </header>
 
-
-<!-- Login Modal -->
-<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      
-      <!-- Modal Header with Logo -->
-      <div class="modal-header border-0 justify-content-center">
-        <img src="logo.png" alt="Logo" style="height: 60px;">
-      </div>
-
-      <!-- Modal Body with Form -->
-      <div class="modal-body">
-        <form>
-          <div class="mb-3">
-            <label for="email" class="form-label">Email address</label>
-            <input type="email" class="form-control" id="email" placeholder="Enter email" required>
-          </div>
-          <div class="mb-3">
-            <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control" id="password" placeholder="Password" required>
-          </div>
-          <div class="d-grid">
-            <button type="submit" class="btn btn-primary">Login</button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Modal Footer (optional) -->
-        <div class="modal-footer border-0 justify-content-start flex-column align-items-start">
-          <small class="text-muted">
-              <a href="#">Forgot your password?</a>
-          </small>
-      </div>
-      <div class="modal-footer border-0 justify-content-start flex-column align-items-start">
-          <small class="text-muted">
-              Do you Have Account? <a href="register.html">Create Account</a>
-          </small>
-      </div>
-
-    </div>
-  </div>
-</div>
 
   <main class="main">
 
@@ -399,6 +356,100 @@ Developed with the needs of local lying-in clinics in mind, the Lying-In Platfor
 
   <!-- Main JS File -->
   <script src="assets/js/main.js"></script>
+
+  <!-- Login Modal -->
+  <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        
+        <!-- Modal Header with Logo -->
+        <div class="modal-header border-0 justify-content-center">
+          <img src="logo.png" alt="Logo" style="height: 60px;">
+        </div>
+
+        <!-- Modal Body with Form -->
+        <div class="modal-body">
+          <form id="loginForm">
+            <input type="hidden" name="csrf_token" id="csrfToken">
+            <input type="hidden" name="user_type" value="patient">
+            
+            <div class="mb-3">
+              <label for="email" class="form-label">Email address</label>
+              <input type="email" class="form-control" name="email" id="email" placeholder="Enter email" required>
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input type="password" class="form-control" name="password" id="password" placeholder="Password" required>
+            </div>
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">Login</button>
+            </div>
+            <div id="loginError" class="alert alert-danger d-none mt-3" role="alert"></div>
+            <div id="loginSuccess" class="alert alert-success d-none mt-3" role="alert"></div>
+          </form>
+        </div>
+
+        <!-- Modal Footer (optional) -->
+        <div class="modal-footer border-0 justify-content-start flex-column align-items-start">
+          <small class="text-muted">
+              <a href="#">Forgot your password?</a>
+          </small>
+        </div>
+        <div class="modal-footer border-0 justify-content-start flex-column align-items-start">
+          <small class="text-muted">
+              Do you Have Account? <a href="register.html">Create Account</a>
+          </small>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Load CSRF token on modal open
+    document.getElementById('loginModal').addEventListener('show.bs.modal', function() {
+      fetch('auth/api/get-csrf-token.php')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('csrfToken').value = data.token;
+        })
+        .catch(error => console.error('Error loading CSRF token:', error));
+    });
+
+    // Handle login form submission
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const errorDiv = document.getElementById('loginError');
+      const successDiv = document.getElementById('loginSuccess');
+      errorDiv.classList.add('d-none');
+      successDiv.classList.add('d-none');
+
+      const formData = new FormData(this);
+      
+      fetch('auth/api/login.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          successDiv.textContent = 'Login successful! Redirecting...';
+          successDiv.classList.remove('d-none');
+          setTimeout(() => {
+            window.location.href = data.redirect;
+          }, 1500);
+        } else {
+          errorDiv.textContent = data.message || 'Login failed. Please try again.';
+          errorDiv.classList.remove('d-none');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        errorDiv.textContent = 'An error occurred. Please try again.';
+        errorDiv.classList.remove('d-none');
+      });
+    });
+  </script>
 
 </body>
 

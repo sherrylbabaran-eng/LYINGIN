@@ -237,7 +237,7 @@ document.getElementById('clinicForm').addEventListener('submit', function(e) {
 
     const formData = new FormData(this);
 
-    fetch("register_clinic.php", {
+    fetch("auth/api/register-clinic.php", {
         method: "POST",
         body: formData
     })

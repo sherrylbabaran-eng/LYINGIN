@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Registration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+    
+    <!-- Face-API for face detection -->
+    <script async src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+    
+    <style>
+        #mapContainer {
+            height: 350px;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+        }
+        
+        #faceVerificationModal .modal-body {
+            background: #f8f9fa;
+        }
+        
+        #videoContainer {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        #videoStream {
+            width: 100%;
+            display: block;
+            transform: scaleX(-1);
+        }
+        
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+        }
+        
+        .face-box {
+            border: 2px solid #28a745;
+            border-radius: 4px;
+            position: absolute;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+        
+        .verification-status {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">Patient Registration</h4>
+                    <small>Register as a Patient</small>
+                </div>
+
+                <div class="card-body p-4">
+
+                    <!-- STEP INDICATOR -->
+                    <ul class="nav nav-pills mb-4 justify-content-center" id="stepTabs">
+                        <li class="nav-item">
+                            <button class="nav-link active" type="button">Step 1</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link disabled" type="button">Step 2</button>
+                        </li>
+                    </ul>
+
+                    <form id="patientForm" enctype="multipart/form-data">
+
+                        <!-- STEP 1: Personal Info -->
+                        <div id="step1">
+                            <h6 class="text-primary mb-3">Personal Information</h6>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">First Name</label>
+                                    <input type="text" name="first_name" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Last Name</label>
+                                    <input type="text" name="last_name" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Birthdate</label>
+                                    <input type="date" name="birthdate" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Gender</label>
+                                    <select name="gender" class="form-select" required>
+                                        <option value="">Select Gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email Address</label>
+                                    <input type="email" name="email" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Contact Number</label>
+                                    <input type="text" name="contact_no" class="form-control" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Location on Map</label>
+                                    <div id="mapContainer"></div>
+                                    <small class="text-muted">Drag the pin to set your location</small>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Address</label>
+                                    <textarea name="address" class="form-control" rows="2" placeholder="Drag pin on map to auto-fill" required></textarea>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="button" class="btn btn-primary" id="nextBtn">Next</button>
+                            </div>
+                        </div>
+
+                        <!-- STEP 2: Account & ID -->
+                        <div id="step2" class="d-none">
+                            <h6 class="text-primary mb-3">Account & ID Verification</h6>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Username</label>
+                                    <input type="text" name="username" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Password</label>
+                                    <input type="password" name="password" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Confirm Password</label>
+                                    <input type="password" name="confirm_password" class="form-control" required>
+                                </div>
+                            </div>
+
+                            <h6 class="text-primary mb-3">Valid ID Verification</h6>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">ID Type</label>
+                                    <select id="idType" name="id_type" class="form-select" required>
+                                        <option value="">Select ID</option>
+                                        <option value="passport">Passport</option>
+                                        <option value="drivers">Driver's License</option>
+                                        <option value="national">National ID</option>
+                                        <option value="philhealth">PhilHealth ID</option>
+                                        <option value="sss">SSS ID</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">ID Number</label>
+                                    <input type="text" id="idNumber" name="id_number" class="form-control" required>
+                                    <small class="text-danger d-none" id="idError">Invalid ID number format</small>
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label">Upload Valid ID</label>
+                                    <input type="file" id="idFile" name="idFile" class="form-control" accept="image/*,.pdf" required>
+                                    <small class="text-danger d-none" id="fileError">Invalid file (JPG, PNG, PDF only / max 5MB)</small>
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label">Face Verification <span class="badge bg-info ms-2">NEW</span></label>
+                                    <button type="button" class="btn btn-outline-primary w-100" id="faceVerifyBtn" data-bs-toggle="modal" data-bs-target="#faceVerificationModal">
+                                        <i class="bi bi-camera"></i> Verify Your Face
+                                    </button>
+                                    <small class="text-muted d-block mt-2">We'll verify your face matches your ID using AI technology</small>
+                                    <div id="faceVerificationStatus" class="mt-2"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-check mb-4">
+                                <input class="form-check-input" type="checkbox" required>
+                                <label class="form-check-label">
+                                    I agree to the <a href="#">Terms and Conditions</a>
+                                </label>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary" id="prevBtn">Back</button>
+                                <button type="submit" class="btn btn-primary btn-lg">Register Patient</button>
+                            </div>
+
+                            <p class="text-center mt-3 text-muted">
+                                Already registered? <a href="login.php">Login here</a>
+                            </p>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- FACE VERIFICATION MODAL -->
+<div class="modal fade" id="faceVerificationModal" tabindex="-1" aria-labelledby="faceVerificationLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="faceVerificationLabel">
+                    <i class="bi bi-camera"></i> Face Verification
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="videoContainer" class="mb-3" style="display: none;">
+                    <video id="videoStream" autoplay playsinline></video>
+                    <canvas id="canvas"></canvas>
+                </div>
+                
+                <div id="faceCaptureArea" class="text-center mb-3">
+                    <p class="text-muted mb-3">Please upload a clear photo of your face to verify against your ID</p>
+                    <input type="file" id="facePhoto" class="form-control" accept="image/*" style="display: none;">
+                    <button type="button" class="btn btn-primary" id="uploadFaceBtn">
+                        <i class="bi bi-cloud-upload"></i> Upload Face Photo
+                    </button>
+                    <button type="button" class="btn btn-outline-primary ms-2" id="useCameraBtn" style="display: none;">
+                        <i class="bi bi-camera-video"></i> Use Camera
+                    </button>
+                </div>
+
+                <div id="previewArea" class="text-center mb-3" style="display: none;">
+                    <p class="fw-bold mb-2">Face Photo Preview:</p>
+                    <img id="previewImage" src="" style="max-width: 100%; max-height: 300px; border-radius: 8px;">
+                </div>
+
+                <div id="verificationResult" class="text-center"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" id="confirmFaceBtn" style="display: none;">
+                    <i class="bi bi-check-circle"></i> Confirm Verification
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Leaflet JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<script src="register.js"></script>
+
+</body>
+</html>

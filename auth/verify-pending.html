@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email - LYINGIN</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pending-container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .pending-container h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .pending-container p {
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .email-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .status-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+        }
+
+        .status-box h3 {
+            margin-bottom: 10px;
+        }
+
+        .status-box p {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 0;
+        }
+
+        .steps {
+            text-align: left;
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+        }
+
+        .steps h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .step {
+            display: flex;
+            margin-bottom: 15px;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .step-content {
+            flex: 1;
+            text-align: left;
+        }
+
+        .step-content strong {
+            display: block;
+            color: #2c3e50;
+            margin-bottom: 3px;
+        }
+
+        .step-content p {
+            color: #7f8c8d;
+            font-size: 13px;
+            margin: 0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #5568d3;
+        }
+
+        .btn-secondary {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .btn-secondary:hover {
+            background-color: #d5dbdb;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #95a5a6;
+        }
+    </style>
+</head>
+<body>
+    <div class="pending-container">
+        <div class="email-icon">📧</div>
+        <h1>Verify Your Email</h1>
+        <p>We've sent a verification link to your email address. Please check your inbox and click the link to confirm your account.</p>
+
+        <div class="status-box">
+            <h3>⏳ Pending Verification</h3>
+            <p>Your account is active but not yet verified. You'll need to verify your email before you can login.</p>
+        </div>
+
+        <div class="steps">
+            <h3>WHAT TO DO NEXT:</h3>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <strong>Check Your Inbox</strong>
+                    <p>Look for an email from noreply@lyingin.com</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <strong>Click the Verification Link</strong>
+                    <p>Open the email and click on the verification link</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <strong>Login to Your Account</strong>
+                    <p>Return to login and enter your credentials</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <a href="/auth/login.html" class="btn btn-primary">Go to Login</a>
+            <button class="btn btn-secondary" onclick="openResendForm()">Resend Email</button>
+        </div>
+
+        <p class="help-text">
+            <strong>Didn't receive the email?</strong><br>
+            Check your spam or junk folder. If you still can't find it, click "Resend Email" above.<br>
+            Links expire in 24 hours.
+        </p>
+    </div>
+
+    <script>
+        function openResendForm() {
+            const email = prompt('Enter your email address to resend the verification link:');
+            if (!email) return;
+
+            // Try to determine user type from context
+            const userType = prompt('Are you registering as Patient or Clinic? (patient/clinic)', 'patient').toLowerCase();
+            if (!['patient', 'clinic'].includes(userType)) {
+                alert('Invalid selection');
+                return;
+            }
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+
+            fetch('/auth/api/send-verification-email.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `email=${encodeURIComponent(email)}&user_type=${encodeURIComponent(userType)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('✅ Verification email sent! Check your inbox.');
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('An error occurred. Please try again.');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = 'Resend Email';
+            });
+        }
+    </script>
+</body>
+</html>

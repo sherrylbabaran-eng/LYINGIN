@@ -1,0 +1,67 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Sensitive files
+config/database.php
+config/secrets.php
+logs/
+uploads/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Composer
+vendor/
+composer.lock
+
+# Node
+node_modules/
+package-lock.json
+
+# Cache
+.cache/
+*.cache
+
+# Session files
+sessions/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Build files
+dist/
+build/
+
+# Dependencies
+node_modules/
+bower_components/
+
+# Testing
+coverage/
+.phpunit.result.cache
+
+# Admin/development only
+admin/
+**/test*.php
+**/demo*.php
+
+# Database dumps
+*.sql
+*.sql.gz
+
+# Logs
+*.log
+logs/
