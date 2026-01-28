@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Appointments</title><!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Super Admin Lying-in</title>
+    <!-- plugins:css -->
+    <link rel="stylesheet" href="assets/vendors/mdi/css/materialdesignicons.min.css">
+    <link rel="stylesheet" href="assets/vendors/ti-icons/css/themify-icons.css">
+    <link rel="stylesheet" href="assets/vendors/css/vendor.bundle.base.css">
+    <link rel="stylesheet" href="assets/vendors/font-awesome/css/font-awesome.min.css">
+    <!-- endinject -->
+    <!-- Plugin css for this page -->
+    <link rel="stylesheet" href="assets/vendors/font-awesome/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="assets/vendors/bootstrap-datepicker/bootstrap-datepicker.min.css">
+    <!-- End plugin css for this page -->
+    <!-- inject:css -->
+    <!-- endinject -->
+    <!-- Layout styles -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- End layout styles -->
+    <link rel="shortcut icon" href="assets/images/favicon.png" />
+  </head>
+  <body>
+    <div class="container-scroller">
+      </div>
+      <!-- partial:partials/_navbar.html -->
+      <nav class="navbar default-layout-navbar col-lg-0 col-0 p-0 fixed-top d-flex flex-row">
+        <div class="text-center navbar-brand-wrapper d-flex align-items-center justify-content-start">
+          <a class="navbar-brand brand-logo" href="index.html"><img src="assets/images/logo.svg" alt="logo" /></a>
+          <a class="navbar-brand brand-logo-mini" href="index.html"><img src="assets/images/logo-mini.svg" alt="logo" /></a>
+        </div>
+        <div class="navbar-menu-wrapper d-flex align-items-stretch">
+          <button class="navbar-toggler navbar-toggler align-self-center" type="button" data-toggle="minimize">
+            <span class="mdi mdi-menu"></span>
+          </button>
+          <div class="search-field d-none d-md-block">
+            <form class="d-flex align-items-center h-100" action="#">
+              <div class="input-group">
+                <div class="input-group-prepend bg-transparent">
+                  <i class="input-group-text border-0 mdi mdi-magnify"></i>
+                </div>
+                <input type="text" class="form-control bg-transparent border-0" placeholder="Search projects">
+              </div>
+            </form>
+          </div>
+          <ul class="navbar-nav navbar-nav-right">
+            <li class="nav-item nav-profile dropdown">
+              <a class="nav-link dropdown-toggle" id="profileDropdown" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="nav-profile-img">
+                  <img src="assets/images/faces/face1.jpg" alt="image">
+                  <span class="availability-status online"></span>
+                </div>
+                <div class="nav-profile-text">
+                  <p class="mb-1 text-black">David Greymaax</p>
+                </div>
+              </a>
+              <div class="dropdown-menu navbar-dropdown" aria-labelledby="profileDropdown">
+                <a class="dropdown-item" href="#">
+                  <i class="mdi mdi-cached me-2 text-success"></i> Activity Log </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#">
+                  <i class="mdi mdi-logout me-2 text-primary"></i> Signout </a>
+              </div>
+            </li>
+            <li class="nav-item dropdown">
+              <a class="nav-link count-indicator dropdown-toggle" id="messageDropdown" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="mdi mdi-email-outline"></i>
+                <span class="count-symbol bg-warning"></span>
+              </a>
+              <div class="dropdown-menu dropdown-menu-end navbar-dropdown preview-list" aria-labelledby="messageDropdown">
+                <h6 class="p-3 mb-0">Messages</h6>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item preview-item">
+                  <div class="preview-thumbnail">
+                    <img src="assets/images/faces/face4.jpg" alt="image" class="profile-pic">
+                  </div>
+                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
+                    <h6 class="preview-subject ellipsis mb-1 font-weight-normal">Mark send you a message</h6>
+                    <p class="text-gray mb-0"> 1 Minutes ago </p>
+                  </div>
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item preview-item">
+                  <div class="preview-thumbnail">
+                    <img src="assets/images/faces/face2.jpg" alt="image" class="profile-pic">
+                  </div>
+                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
+                    <h6 class="preview-subject ellipsis mb-1 font-weight-normal">Cregh send you a message</h6>
+                    <p class="text-gray mb-0"> 15 Minutes ago </p>
+                  </div>
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item preview-item">
+                  <div class="preview-thumbnail">
+                    <img src="assets/images/faces/face3.jpg" alt="image" class="profile-pic">
+                  </div>
+                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
+                    <h6 class="preview-subject ellipsis mb-1 font-weight-normal">Profile picture updated</h6>
+                    <p class="text-gray mb-0"> 18 Minutes ago </p>
+                  </div>
+                </a>
+                <div class="dropdown-divider"></div>
+                <h6 class="p-3 mb-0 text-center">4 new messages</h6>
+              </div>
+            </li>
+            <li class="nav-item dropdown">
+              <a class="nav-link count-indicator dropdown-toggle" id="notificationDropdown" href="#" data-bs-toggle="dropdown">
+                <i class="mdi mdi-bell-outline"></i>
+                <span class="count-symbol bg-danger"></span>
+              </a>
+              <div class="dropdown-menu dropdown-menu-end navbar-dropdown preview-list" aria-labelledby="notificationDropdown">
+                <h6 class="p-3 mb-0">Notifications</h6>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item preview-item">
+                  <div class="preview-thumbnail">
+                    <div class="preview-icon bg-success">
+                      <i class="mdi mdi-calendar"></i>
+                    </div>
+                  </div>
+                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
+                    <h6 class="preview-subject font-weight-normal mb-1">Event today</h6>
+                    <p class="text-gray ellipsis mb-0"> Just a reminder that you have an event today </p>
+                  </div>
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item preview-item">
+                  <div class="preview-thumbnail">
+                    <div class="preview-icon bg-warning">
+                      <i class="mdi mdi-cog"></i>
+                    </div>
+                  </div>
+                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
+                    <h6 class="preview-subject font-weight-normal mb-1">Settings</h6>
+                    <p class="text-gray ellipsis mb-0"> Update dashboard </p>
+                  </div>
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item preview-item">
+                  <div class="preview-thumbnail">
+                    <div class="preview-icon bg-info">
+                      <i class="mdi mdi-link-variant"></i>
+                    </div>
+                  </div>
+                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
+                    <h6 class="preview-subject font-weight-normal mb-1">Launch Admin</h6>
+                    <p class="text-gray ellipsis mb-0"> New admin wow! </p>
+                  </div>
+                </a>
+                <div class="dropdown-divider"></div>
+                <h6 class="p-3 mb-0 text-center">See all notifications</h6>
+              </div>
+            </li>
+          </ul>
+          <button class="navbar-toggler navbar-toggler-right d-lg-none align-self-center" type="button" data-toggle="offcanvas">
+            <span class="mdi mdi-menu"></span>
+          </button>
+        </div>
+      </nav>
+      <!-- partial -->
+      <div class="container-fluid page-body-wrapper">
+        <!-- partial:partials/_sidebar.html -->
+              <nav class="sidebar sidebar-offcanvas" id="sidebar">
+        <ul class="nav">
+
+          <!-- Dashboard -->
+          <li class="nav-item">
+            <a class="nav-link" href="user.html">
+              <span class="menu-title">Dashboard</span>
+              <i class="mdi mdi-home menu-icon"></i>
+            </a>
+          </li>
+
+          <!--LABORATORY-->
+              <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#laboratoryMenu" aria-expanded="false" aria-controls="laboratoryMenu">
+                  <span class="menu-title">Laboratory</span>
+                  <i class="mdi mdi-chevron-down menu-arrow"></i>
+                </a>
+
+              <div class="collapse" id="laboratoryMenu">
+                <ul class="nav flex-column sub-menu">
+                  <li class="nav-item">
+                    <a class="nav-link" href="urinalysis.html">Urinalysis</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="ultrasound.html">Ultrasound</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="pregnancy-test.html">Pregnancy Test</a>
+                  </li>
+                </ul>
+              </div>
+            </li>
+
+              <!-- PATIENTS -->
+              <li class="nav-item">
+                <a class="nav-link" href="patients.html">
+                  <span class="menu-title">Patients</span>
+                  <i class="mdi mdi-account-multiple menu-icon"></i>
+                </a>
+              </li>
+
+              <!-- APPOINTMENTS -->
+              <li class="nav-item">
+                <a class="nav-link" href="appointments.html">
+                  <span class="menu-title">Appointments</span>
+                  <i class="mdi mdi-calendar-check menu-icon"></i>
+                </a>
+              </li>
+
+              <!-- PRENATAL -->
+              <li class="nav-item">
+                <a class="nav-link" href="prenatal.html">
+                  <span class="menu-title">Prenatal Records</span>
+                  <i class="mdi mdi-baby-face-outline menu-icon"></i>
+                </a>
+              </li>
+
+              <!-- POSTNATAL -->
+              <li class="nav-item">
+                <a class="nav-link" href="postnatal.html">
+                  <span class="menu-title">Postnatal Records</span>
+                  <i class="mdi mdi-heart-pulse menu-icon"></i>
+                </a>
+              </li>
+
+              <!-- DELIVERIES -->
+              <li class="nav-item">
+                <a class="nav-link" href="deliveries.html">
+                  <span class="menu-title">Deliveries</span>
+                  <i class="mdi mdi-hospital menu-icon"></i>
+                </a>
+              </li>
+
+              <!-- REPORTS -->
+              <li class="nav-item">
+                <a class="nav-link" href="reports.html">
+                  <span class="menu-title">Reports</span>
+                  <i class="mdi mdi-file-chart menu-icon"></i>
+                </a>
+              </li>
+
+              <!-- RECEPTIONIST -->
+              <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#receptionistMenu" aria-expanded="false" aria-controls="receptionistMenu">
+                  <span class="menu-title">Receptionist</span>
+                  <i class="mdi mdi-chevron-down menu-arrow"></i>
+                </a>
+
+              <div class="collapse" id="receptionistMenu">
+                <ul class="nav flex-column sub-menu">
+                  <li class="nav-item">
+                    <a class="nav-link" href="receptionist.html">Staff</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="user.html">User</a>
+                  </li>
+                </ul>
+              </div>
+            </li>
+
+              <!-- SETTINGS -->
+              <li class="nav-item">
+                <a class="nav-link" href="settings.html">
+                  <span class="menu-title">Settings</span>
+                  <i class="mdi mdi-cog-outline menu-icon"></i>
+                </a>
+              </li>
+        </ul>
+      </nav>
+
+        <!-- partial -->
+        <div class="main-panel">
+          <div class="content-wrapper">
+            <div class="row">
+              <div class="col-12 grid-margin">
+                <div class="card">
+                  <div class="card-body">
+                   <!--DAVENG DITO KA MAG CODE-->
+                <div class="card-body">
+  <h4 class="card-title">My Appointments</h4>
+
+  <!-- Search bar -->
+  <div class="row mb-3 align-items-center">
+  <div class="col-md-4">
+    <input type="text" id="appointmentSearch" class="form-control" placeholder="Search appointments...">
+  </div>
+
+  <div class="col-md-8 text-end">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAppointmentModal">
+      <i class="mdi mdi-plus"></i> Add Appointment
+    </button>
+  </div>
+</div>
+
+<!-- Add Appointment Modal -->
+<div class="modal fade" id="addAppointmentModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Appointment</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <form>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Date</label>
+              <input type="date" class="form-control">
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Time</label>
+              <input type="time" class="form-control">
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Clinic</label>
+              <input type="text" class="form-control" placeholder="Clinic name">
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Service</label>
+              <select class="form-control">
+                <option>Prenatal Checkup</option>
+                <option>Ultrasound</option>
+                <option>Postnatal Checkup</option>
+              </select>
+            </div>
+
+            <div class="col-md-12 mb-3">
+              <label class="form-label">Status</label>
+              <select class="form-control">
+                <option>Pending</option>
+                <option>Confirmed</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary">Save Appointment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+  <div class="table-responsive">
+    <table class="table table-hover" id="appointmentTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Clinic</th>
+          <th>Service</th>
+          <th>Status</th>
+          <th class="text-center">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Jan 25, 2026</td>
+          <td>9:00 AM</td>
+          <td>ABC Lying-In Clinic</td>
+          <td>Prenatal Checkup</td>
+          <td><label class="badge badge-gradient-success">Confirmed</label></td>
+          <td class="text-center"><button class="btn btn-sm btn-info">View</button></td>
+        </tr>
+        <tr>
+          <td>Feb 10, 2026</td>
+          <td>1:30 PM</td>
+          <td>ABC Lying-In Clinic</td>
+          <td>Ultrasound</td>
+          <td><label class="badge badge-gradient-warning">Pending</label></td>
+          <td class="text-center"><button class="btn btn-sm btn-danger">Cancel</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- content-wrapper ends -->
+          <!-- partial:partials/_footer.html -->
+          <footer class="footer">
+            <div class="d-sm-flex justify-content-center justify-content-sm-between">
+              <span class="text-muted text-center text-sm-left d-block d-sm-inline-block">Copyright © 2023 <a href="LYINGIN" target="_blank">Lying-in</a>.</span>
+            </div>
+          </footer>
+          <!-- partial -->
+        </div>
+        <!-- main-panel ends -->
+      </div>
+      <!-- page-body-wrapper ends -->
+    </div>
+    <!-- container-scroller -->
+    <!-- plugins:js -->
+    <script src="assets/vendors/js/vendor.bundle.base.js"></script>
+    <!-- endinject -->
+    <!-- Plugin js for this page -->
+    <script src="assets/vendors/chart.js/chart.umd.js"></script>
+    <script src="assets/vendors/bootstrap-datepicker/bootstrap-datepicker.min.js"></script>
+    <!-- End plugin js for this page -->
+    <!-- inject:js -->
+    <script src="assets/js/off-canvas.js"></script>
+    <script src="assets/js/misc.js"></script>
+    <script src="assets/js/settings.js"></script>
+    <script src="assets/js/todolist.js"></script>
+    <script src="assets/js/jquery.cookie.js"></script>
+    <!-- endinject -->
+    <!-- Custom js for this page -->
+    <script src="assets/js/dashboard.js"></script>
+    <script>
+  // Simple search filter
+  document.getElementById('appointmentSearch').addEventListener('keyup', function() {
+    let filter = this.value.toLowerCase();
+    let rows = document.querySelectorAll('#appointmentTable tbody tr');
+
+    rows.forEach(row => {
+      let text = row.textContent.toLowerCase();
+      row.style.display = text.includes(filter) ? '' : 'none';
+    });
+  });
+</script>
+
+    <!-- End custom js for this page -->
+  
+</body>
+</html>
