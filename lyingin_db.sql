@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 28, 2026 at 06:38 AM
+-- Generation Time: Feb 05, 2026 at 03:24 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -215,6 +215,7 @@ CREATE TABLE `regpatient` (
   `id_file` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `email_verified` tinyint(1) DEFAULT 0,
+  `face_verified` tinyint(1) DEFAULT 0,
   `email_verification_token` varchar(255) DEFAULT NULL,
   `email_verification_expires` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -223,8 +224,8 @@ CREATE TABLE `regpatient` (
 -- Dumping data for table `regpatient`
 --
 
-INSERT INTO `regpatient` (`id`, `first_name`, `last_name`, `birthdate`, `gender`, `email`, `contact_no`, `address`, `username`, `password`, `id_type`, `id_number`, `id_file`, `created_at`, `email_verified`, `email_verification_token`, `email_verification_expires`) VALUES
-(1, 'Alessandra Nicole', 'De Guzman', '2005-01-22', 'female', 'tandicoalessandranicole@gmail.com', '09235468989', 'a', 'nix', '$2y$10$wCnV59JMVM.BteiPCD92TeJd04wg8ONQhLr24iF4SdzDTbgUWIfPK', 'national', '123456789012', 'uploads/patients/1769420653_makabayan.png', '2026-01-26 09:44:13', 0, NULL, NULL);
+INSERT INTO `regpatient` (`id`, `first_name`, `last_name`, `birthdate`, `gender`, `email`, `contact_no`, `address`, `username`, `password`, `id_type`, `id_number`, `id_file`, `created_at`, `email_verified`, `face_verified`, `email_verification_token`, `email_verification_expires`) VALUES
+(8, 'Alessandra Nicole', 'De Guzman', '2005-01-22', 'female', 'sewojef687@cimario.com', '0965237923', 'Imus, 4103, Philippines', 'sewojef687', '$2y$10$4SgW74UBwQYka4Rwf1e8E.3x.mn1vr1VUPn.6WglKT.5shP0/xpwW', 'national', '5921430936295184', 'C:\\xampp\\htdocs\\THESIS\\LYINGIN\\auth\\api/../../uploads/patients/id_69821a5e5fe280.73388090_sandra.jpg', '2026-02-03 15:55:10', 0, 1, '166f9159dd1e9ee2fb47c43703c951d23e9ec3410cef62e33e143ad66bf30805', '2026-02-04 16:55:10');
 
 --
 -- Indexes for dumped tables
@@ -302,7 +303,7 @@ ALTER TABLE `patients`
 -- AUTO_INCREMENT for table `regpatient`
 --
 ALTER TABLE `regpatient`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- Constraints for dumped tables
