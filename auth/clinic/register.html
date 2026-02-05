@@ -207,15 +207,21 @@ verifyEmailBtn.addEventListener('click', async function() {
     verifyEmailBtn.textContent = 'Sending OTP...';
     
     try {
-        const response = await fetch('../api/send-otp.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: 'email=' + encodeURIComponent(email) + '&user_type=clinic'
-        });
-        
-        const data = await response.json();
+        const candidates = ['auth/api/send-otp.php', '/THESIS/LYINGIN/auth/api/send-otp.php', '/THESIS/LYINGIN/auth/api/send-otp.php'];
+        let data = null;
+        for (const url of candidates) {
+            try {
+                console.log('Attempting clinic OTP send to:', url);
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'email=' + encodeURIComponent(email) + '&user_type=clinic'
+                });
+                const text = await resp.text();
+                try { data = JSON.parse(text); if (!resp.ok) throw { url, status: resp.status, data }; break; } catch (e) { console.warn('Non-JSON or error response from', url); continue; }
+            } catch (err) { console.warn('Attempt failed for', url, err); continue; }
+        }
+        if (!data) throw new Error('All OTP endpoints failed');
         
         if (data.status === 'success') {
             showEmailStatus('OTP sent! Check your email.', 'success');
@@ -227,7 +233,7 @@ verifyEmailBtn.addEventListener('click', async function() {
         }
     } catch (error) {
         console.error('Error:', error);
-        showEmailStatus('Error sending OTP. Please try again.', 'danger');
+        showEmailStatus('Error sending OTP. Server endpoint not found or returned an error. Check console.', 'danger');
         verifyEmailBtn.disabled = false;
         verifyEmailBtn.textContent = 'Verify';
     }
@@ -262,19 +268,36 @@ function showOTPModal(email) {
         submitOtpBtn.textContent = 'Verifying...';
         
         try {
-            const response = await fetch('../api/verify-otp.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: 'email=' + encodeURIComponent(email) + '&otp=' + encodeURIComponent(otp)
-            });
-            
-            const data = await response.json();
+            const candidates = ['auth/api/verify-otp.php', '/THESIS/LYINGIN/auth/api/verify-otp.php', '/THESIS/LYINGIN/auth/api/verify-otp.php'];
+            let data = null;
+            for (const url of candidates) {
+                try {
+                    console.log('Attempting clinic OTP verify to:', url);
+                    const resp = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'email=' + encodeURIComponent(email) + '&otp=' + encodeURIComponent(otp)
+                    });
+                    const text = await resp.text();
+                    try { data = JSON.parse(text); if (!resp.ok) throw { url, status: resp.status, data }; break; } catch (e) { console.warn('Non-JSON or error response from', url); continue; }
+                } catch (err) { console.warn('Attempt failed for', url, err); continue; }
+            }
+            if (!data) throw new Error('All OTP verify endpoints failed');
             
             if (data.status === 'success') {
                 verifiedEmail = email;
-                emailInput.disabled = true;
+                // Keep input readonly instead of disabled so it remains in form submission
+                emailInput.readOnly = true;
+                let hiddenEmail = document.getElementById('hiddenVerifiedEmail');
+                if (!hiddenEmail) {
+                    hiddenEmail = document.createElement('input');
+                    hiddenEmail.type = 'hidden';
+                    hiddenEmail.id = 'hiddenVerifiedEmail';
+                    hiddenEmail.name = 'email';
+                    document.getElementById('clinicForm').appendChild(hiddenEmail);
+                }
+                hiddenEmail.value = email;
+
                 verifyEmailBtn.disabled = true;
                 verifyEmailBtn.classList.add('btn-success');
                 verifyEmailBtn.classList.remove('btn-outline-primary');
@@ -292,7 +315,7 @@ function showOTPModal(email) {
             }
         } catch (error) {
             console.error('Error:', error);
-            otpErrorMsg.innerHTML = '<div class="alert alert-danger mb-0 small">Error verifying OTP. Please try again.</div>';
+            otpErrorMsg.innerHTML = '<div class="alert alert-danger mb-0 small">Error verifying OTP. Server endpoint not found or returned an error. Check console.</div>';
             submitOtpBtn.disabled = false;
             submitOtpBtn.textContent = 'Verify OTP';
         }

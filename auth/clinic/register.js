@@ -29,7 +29,7 @@ clinicForm.addEventListener('submit', e => {
 
     const formData = new FormData(clinicForm);
 
-    fetch('../api/register-clinic.php', {
+    fetch('/THESIS/LYINGIN/auth/api/register-clinic.php', {
         method: 'POST',
         body: formData
     })

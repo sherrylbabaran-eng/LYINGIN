@@ -409,7 +409,7 @@ Developed with the needs of local lying-in clinics in mind, the Lying-In Platfor
   <script>
     // Load CSRF token on modal open
     document.getElementById('loginModal').addEventListener('show.bs.modal', function() {
-      fetch('auth/api/get-csrf-token.php')
+      fetch('/THESIS/LYINGIN/auth/api/get-csrf-token.php')
         .then(response => response.json())
         .then(data => {
           document.getElementById('csrfToken').value = data.token;
@@ -427,7 +427,7 @@ Developed with the needs of local lying-in clinics in mind, the Lying-In Platfor
 
       const formData = new FormData(this);
       
-      fetch('auth/api/login.php', {
+      fetch('/THESIS/LYINGIN/auth/api/login.php', {
         method: 'POST',
         body: formData
       })
