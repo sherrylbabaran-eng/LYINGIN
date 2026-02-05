@@ -18,6 +18,10 @@
     <!-- Plugin css for this page -->
     <link rel="stylesheet" href="assets/vendors/font-awesome/css/font-awesome.min.css" />
     <link rel="stylesheet" href="assets/vendors/bootstrap-datepicker/bootstrap-datepicker.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <!-- End plugin css for this page -->
     <!-- inject:css -->
     <!-- endinject -->
@@ -170,139 +174,218 @@
 
           <!-- Dashboard -->
           <li class="nav-item">
-            <a class="nav-link" href="user.html">
+            <a class="nav-link" href="clinika.html">
               <span class="menu-title">Dashboard</span>
               <i class="mdi mdi-home menu-icon"></i>
             </a>
           </li>
 
-          <!-- Appointments -->
-          <li class="nav-item">
-            <a class="nav-link" href="appointment.html">
-              <span class="menu-title">My Appointments</span>
-              <i class="mdi mdi-calendar-check menu-icon"></i>
-            </a>
-          </li>
+          <!--LABORATORY-->
+              <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#laboratoryMenu" aria-expanded="false" aria-controls="laboratoryMenu">
+                  <span class="menu-title">Laboratory</span>
+                  <i class="mdi mdi-chevron-down menu-arrow"></i>
+                </a>
 
-          <!-- Schedule -->
-          <li class="nav-item">
-            <a class="nav-link" href="schedule.html">
-              <span class="menu-title">Schedule Checkup</span>
-              <i class="mdi mdi-calendar-plus menu-icon"></i>
-            </a>
-          </li>
+              <div class="collapse" id="laboratoryMenu">
+                <ul class="nav flex-column sub-menu">
+                  <li class="nav-item">
+                    <a class="nav-link" href="urinalysis.html">Urinalysis</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="ultrasound.html">Ultrasound</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="pregnancy-test.html">Pregnancy Test</a>
+                  </li>
+                </ul>
+              </div>
+            </li>
 
-          <!-- Medical Records -->
-          <li class="nav-item">
-            <a class="nav-link" href="records.html">
-              <span class="menu-title">Medical Records</span>
-              <i class="mdi mdi-file-document-outline menu-icon"></i>
+              <!-- PATIENTS -->
+              <li class="nav-item">
+                <a class="nav-link" href="patients.html">
+                  <span class="menu-title">Patients</span>
+                  <i class="mdi mdi-account-multiple menu-icon"></i>
+                </a>
+              </li>
 
-            </a>
-          </li>
+              <!-- APPOINTMENTS -->
+              <li class="nav-item">
+                <a class="nav-link" href="appointment.html">
+                  <span class="menu-title">Appointments</span>
+                  <i class="mdi mdi-calendar-check menu-icon"></i>
+                </a>
+              </li>
 
-          <!-- Pregnancy Tracker -->
-          <li class="nav-item">
-            <a class="nav-link" href="tracker.html">
-              <span class="menu-title">Pregnancy Tracker</span>
-              <i class="mdi mdi-baby-face-outline menu-icon"></i>
-            </a>
-          </li>
+              <!-- PRENATAL -->
+              <li class="nav-item">
+                <a class="nav-link" href="prenatal.html">
+                  <span class="menu-title">Prenatal Records</span>
+                  <i class="mdi mdi-baby-face-outline menu-icon"></i>
+                </a>
+              </li>
+
+              <!-- POSTNATAL -->
+              <li class="nav-item">
+                <a class="nav-link" href="postnatal.html">
+                  <span class="menu-title">Postnatal Records</span>
+                  <i class="mdi mdi-heart-pulse menu-icon"></i>
+                </a>
+              </li>
+
+              <!-- DELIVERIES -->
+              <li class="nav-item">
+                <a class="nav-link" href="deliveries.html">
+                  <span class="menu-title">Deliveries</span>
+                  <i class="mdi mdi-hospital menu-icon"></i>
+                </a>
+              </li>
+
+              <!-- REPORTS -->
+              <li class="nav-item">
+                <a class="nav-link" href="reports.html">
+                  <span class="menu-title">Reports</span>
+                  <i class="mdi mdi-file-chart menu-icon"></i>
+                </a>
+              </li>
+
+              <!-- RECEPTIONIST -->
+              <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#receptionistMenu" aria-expanded="false" aria-controls="receptionistMenu">
+                  <span class="menu-title">Receptionist</span>
+                  <i class="mdi mdi-chevron-down menu-arrow"></i>
+                </a>
+
+              <div class="collapse" id="receptionistMenu">
+                <ul class="nav flex-column sub-menu">
+                  <li class="nav-item">
+                    <a class="nav-link" href="receptionist.html">Staff</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="user.html">User</a>
+                  </li>
+                </ul>
+              </div>
+            </li>
+
+              <!-- SETTINGS -->
+              <li class="nav-item">
+                <a class="nav-link" href="settings.html">
+                  <span class="menu-title">Settings</span>
+                  <i class="mdi mdi-cog-outline menu-icon"></i>
+                </a>
+              </li>
         </ul>
       </nav>
 
         <!-- partial -->
         <div class="main-panel">
           <div class="content-wrapper">
+            <div class="page-header">
+              <h3 class="page-title">
+                <span class="page-title-icon bg-gradient-primary text-white me-2">
+                  <i class="mdi mdi-home"></i>
+                </span> Dashboard
+              </h3>
+              <nav aria-label="breadcrumb">
+                <ul class="breadcrumb">
+                  <li class="breadcrumb-item active" aria-current="page">
+                    <span></span>Overview <i class="mdi mdi-alert-circle-outline icon-sm text-primary align-middle"></i>
+                  </li>
+                </ul>
+              </nav>
+            </div>
        
             
-            <div class="row">
-              <div class="col-12 grid-margin">
-                <div class="card">
-                  <div class="card-body">
-                   <!--DAVENG DITO KA MAG CODE-->
-
-  <!-- Header with Date Picker and Search -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h4 class="fw-bold">Daily Schedule</h4>
-  
-  <div class="d-flex gap-2">
-    <!-- Date Picker -->
-    <input type="date" class="form-control w-auto">
-
-    <!-- Search Bar -->
-    <input type="text" class="form-control w-auto" placeholder="Search patient or service">
-    
-    <!-- Search Button -->
-    <button class="btn btn-primary">Search</button>
-  </div>
-</div>
-
-    <div class="card-body">
-
-      <!-- Time Slot -->
-      <div class="row border-bottom py-2 align-items-center">
-        <div class="col-md-2 fw-bold text-primary">
-          08:00 AM
-        </div>
-        <div class="col-md-10">
-          <div class="alert alert-success mb-0">
-            <strong>Maria Santos</strong><br>
-            Prenatal Check-up
-          </div>
-        </div>
-      </div>
-
-      <!-- Time Slot -->
-      <div class="row border-bottom py-2 align-items-center">
-        <div class="col-md-2 fw-bold text-primary">
-          09:00 AM
-        </div>
-        <div class="col-md-10">
-          <div class="alert alert-warning mb-0">
-            <strong>Juan Dela Cruz</strong><br>
-            Ultrasound
-          </div>
+        <div class="row">
+  <div class="col-12 grid-margin">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="card-title d-flex justify-content-between align-items-center">
+          Patients Records
+        </h4>
+        <div class="table-responsive">
+          <table id="prenatalTable" class="table table-striped table-bordered">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Patient Name</th>
+                <th>Age</th>
+                <th>Last Menstrual Period</th>
+                <th>Expected Delivery Date</th>
+                <th>Obstetrician</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>Maria Santos</td>
+                <td>28</td>
+                <td>2025-06-15</td>
+                <td>2026-03-22</td>
+                <td>Dr. Cruz</td>
+                <td>First pregnancy, healthy</td>
+                <td>
+                  <button class="btn btn-sm btn-primary viewBtn">View</button>
+                  <button class="btn btn-sm btn-warning editBtn">Edit</button>
+                  <button class="btn btn-sm btn-danger deleteBtn">Delete</button>
+                </td>
+              </tr>
+              <!-- Other existing records -->
+            </tbody>
+          </table>
         </div>
       </div>
-
-      <!-- Empty Slot -->
-      <div class="row border-bottom py-2 align-items-center">
-        <div class="col-md-2 fw-bold text-muted">
-          10:00 AM
-        </div>
-        <div class="col-md-10">
-          <span class="text-muted fst-italic">Available</span>
-        </div>
-      </div>
-
-      <!-- Time Slot -->
-      <div class="row py-2 align-items-center">
-        <div class="col-md-2 fw-bold text-primary">
-          01:00 PM
-        </div>
-        <div class="col-md-10">
-          <div class="alert alert-info mb-0">
-            <strong>Ana Cruz</strong><br>
-            Postnatal Care
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
-
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
-
-                  </div>
-                </div>
-              </div>
-            </div>
+<!-- Add Record Modal -->
+<div class="modal fade" id="addRecordModal" tabindex="-1" aria-labelledby="addRecordLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="addRecordForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addRecordLabel">Add Prenatal Record</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="patientName" class="form-label">Patient Name</label>
+            <input type="text" class="form-control" id="patientName" required>
           </div>
+          <div class="mb-3">
+            <label for="age" class="form-label">Age</label>
+            <input type="number" class="form-control" id="age" required>
+          </div>
+          <div class="mb-3">
+            <label for="lmp" class="form-label">Last Menstrual Period</label>
+            <input type="date" class="form-control" id="lmp" required>
+          </div>
+          <div class="mb-3">
+            <label for="edd" class="form-label">Expected Delivery Date</label>
+            <input type="date" class="form-control" id="edd" required>
+          </div>
+          <div class="mb-3">
+            <label for="obstetrician" class="form-label">Obstetrician</label>
+            <input type="text" class="form-control" id="obstetrician" required>
+          </div>
+          <div class="mb-3">
+            <label for="notes" class="form-label">Notes</label>
+            <textarea class="form-control" id="notes" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Add Record</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
           <!-- content-wrapper ends -->
           <!-- partial:partials/_footer.html -->
           <footer class="footer">
@@ -333,9 +416,57 @@
     <!-- endinject -->
     <!-- Custom js for this page -->
     <script src="assets/js/dashboard.js"></script>
-    
-
     <!-- End custom js for this page -->
-  
+  <script>
+  $(document).ready(function() {
+    var table = $('#prenatalTable').DataTable({
+      "pageLength": 5,
+      "lengthMenu": [5, 10, 20, 50],
+      "ordering": true,
+      "order": [[ 0, "asc" ]],
+      "columnDefs": [
+        { "orderable": false, "targets": 7 } // Disable ordering for Actions column
+      ]
+    });
+
+    // Add Record Form Submit
+    $('#addRecordForm').on('submit', function(e) {
+      e.preventDefault();
+
+      var name = $('#patientName').val();
+      var age = $('#age').val();
+      var lmp = $('#lmp').val();
+      var edd = $('#edd').val();
+      var obstetrician = $('#obstetrician').val();
+      var notes = $('#notes').val();
+
+      // Get new row number
+      var rowCount = table.rows().count() + 1;
+
+      // Add new row to DataTable
+      table.row.add([
+        rowCount,
+        name,
+        age,
+        lmp,
+        edd,
+        obstetrician,
+        notes,
+        `<button class="btn btn-sm btn-primary viewBtn">View</button>
+         <button class="btn btn-sm btn-warning editBtn">Edit</button>
+         <button class="btn btn-sm btn-danger deleteBtn">Delete</button>`
+      ]).draw();
+
+      // Reset form and close modal
+      $('#addRecordForm')[0].reset();
+      $('#addRecordModal').modal('hide');
+    });
+
+    // Delete row
+    $('#prenatalTable tbody').on('click', '.deleteBtn', function () {
+      table.row($(this).parents('tr')).remove().draw();
+    });
+  });
+</script>
 </body>
 </html>
