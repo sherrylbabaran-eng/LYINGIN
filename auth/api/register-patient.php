@@ -3,12 +3,19 @@
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
-// Convert warnings/notices into exceptions so we can return JSON errors
+// Convert errors into exceptions (but skip warnings from external functions like mail)
+// Only throw exceptions for user-defined errors and fatal errors, not warnings
 set_error_handler(function($severity, $message, $file, $line) {
-    throw new ErrorException($message, 0, $severity, $file, $line);
+    // Don't throw for warnings or notices from external functions (e.g., mail())
+    // Only throw for user errors (E_USER_ERROR, E_USER_WARNING, E_USER_NOTICE)
+    if ($severity & (E_USER_ERROR | E_USER_WARNING | E_USER_NOTICE | E_CORE_ERROR | E_COMPILE_ERROR)) {
+        throw new ErrorException($message, 0, $severity, $file, $line);
+    }
+    return false; // Let default handler process other errors
 });
 
 header('Content-Type: application/json');
+session_start();
 
 try {
 
@@ -125,6 +132,337 @@ function validate_id($type, $value, &$errMsg = '') {
     }
 }
 
+function normalize_id_for_ocr($type, $value) {
+    $v = strtoupper(trim($value));
+    if (in_array($type, ['national', 'philhealth', 'sss'])) {
+        return preg_replace('/\D/', '', $v);
+    }
+    return preg_replace('/[^A-Z0-9]/', '', $v);
+}
+
+function normalize_ocr_text($text) {
+    $t = strtoupper($text);
+    return preg_replace('/[^A-Z0-9]/', '', $t);
+}
+
+function normalize_ocr_digits($text) {
+    $t = normalize_ocr_text($text);
+    $map = [
+        'O' => '0',
+        'Q' => '0',
+        'I' => '1',
+        'L' => '1',
+        'Z' => '2',
+        'S' => '5',
+        'B' => '8',
+        'G' => '6'
+    ];
+    return strtr($t, $map);
+}
+
+function extract_digit_candidates($text) {
+    $candidates = [];
+    if (!$text) return $candidates;
+
+    if (preg_match_all('/\d{8,20}/', $text, $matches)) {
+        foreach ($matches[0] as $m) {
+            $candidates[$m] = true;
+        }
+    }
+
+    $digits = preg_replace('/\D/', '', $text);
+    if (strlen($digits) >= 8) {
+        $candidates[$digits] = true;
+    }
+
+    return array_keys($candidates);
+}
+
+function run_ocr_tsv($imagePath) {
+    $tesseract = getenv('TESSERACT_BIN');
+    if (!$tesseract) {
+        $tesseract = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe';
+    }
+    if (!file_exists($tesseract)) {
+        error_log('Tesseract not found at: ' . $tesseract);
+        return null;
+    }
+
+    $base = tempnam(sys_get_temp_dir(), 'ocrt_');
+    if ($base === false) return null;
+    @unlink($base);
+
+    $cmd = '"' . $tesseract . '" ' . escapeshellarg($imagePath) . ' ' . escapeshellarg($base) . ' --oem 1 --psm 6 tsv';
+    $output = [];
+    $code = 0;
+    exec($cmd, $output, $code);
+    $tsvFile = $base . '.tsv';
+
+    if ($code !== 0 || !file_exists($tsvFile)) {
+        error_log('OCR tsv failed with code ' . $code . ' for file: ' . $imagePath);
+        if (file_exists($tsvFile)) @unlink($tsvFile);
+        return null;
+    }
+
+    $tsv = file_get_contents($tsvFile);
+    @unlink($tsvFile);
+    return $tsv !== false ? $tsv : null;
+}
+
+function find_id_number_roi($imagePath) {
+    if (!function_exists('imagecreatefromjpeg')) return null;
+
+    $preprocessed = preprocess_id_image($imagePath);
+    $tsvText = run_ocr_tsv($preprocessed ?: $imagePath);
+    if ($preprocessed && file_exists($preprocessed)) {
+        @unlink($preprocessed);
+    }
+    if (!$tsvText) return null;
+
+    $lines = preg_split('/\r?\n/', trim($tsvText));
+    if (count($lines) < 2) return null;
+
+    $lineMap = [];
+    foreach ($lines as $i => $line) {
+        if ($i === 0) continue; // header
+        $cols = explode("\t", $line);
+        if (count($cols) < 12) continue;
+        $text = trim($cols[11] ?? '');
+        if ($text === '') continue;
+
+        $block = $cols[2];
+        $par = $cols[3];
+        $ln = $cols[4];
+        $key = $block . '-' . $par . '-' . $ln;
+
+        $left = (int)$cols[6];
+        $top = (int)$cols[7];
+        $width = (int)$cols[8];
+        $height = (int)$cols[9];
+        $right = $left + $width;
+        $bottom = $top + $height;
+
+        if (!isset($lineMap[$key])) {
+            $lineMap[$key] = [
+                'texts' => [],
+                'left' => $left,
+                'top' => $top,
+                'right' => $right,
+                'bottom' => $bottom
+            ];
+        }
+        $lineMap[$key]['texts'][] = strtoupper($text);
+        $lineMap[$key]['left'] = min($lineMap[$key]['left'], $left);
+        $lineMap[$key]['top'] = min($lineMap[$key]['top'], $top);
+        $lineMap[$key]['right'] = max($lineMap[$key]['right'], $right);
+        $lineMap[$key]['bottom'] = max($lineMap[$key]['bottom'], $bottom);
+    }
+
+    foreach ($lineMap as $line) {
+        $lineText = implode(' ', $line['texts']);
+        if (strpos($lineText, 'ID') !== false && (strpos($lineText, 'NUMBER') !== false || strpos($lineText, 'NO') !== false || strpos($lineText, 'NUM') !== false)) {
+            $imgSize = @getimagesize($imagePath);
+            if (!$imgSize) return null;
+            $imgW = $imgSize[0];
+            $imgH = $imgSize[1];
+
+            $x = max(0, $line['left']);
+            $y = min($imgH - 1, $line['bottom'] + 5);
+            $w = $imgW - $x;
+            $h = min((int)round(($line['bottom'] - $line['top']) * 2.5), $imgH - $y);
+
+            if ($w > 50 && $h > 20) {
+                return ['x' => $x, 'y' => $y, 'w' => $w, 'h' => $h];
+            }
+        }
+    }
+
+    return null;
+}
+
+function crop_image_region($imagePath, $roi) {
+    $mime = mime_content_type($imagePath);
+    if ($mime === 'image/jpeg') {
+        $img = @imagecreatefromjpeg($imagePath);
+    } elseif ($mime === 'image/png') {
+        $img = @imagecreatefrompng($imagePath);
+    } else {
+        return null;
+    }
+    if (!$img) return null;
+
+    $crop = imagecreatetruecolor($roi['w'], $roi['h']);
+    imagecopy($crop, $img, 0, 0, $roi['x'], $roi['y'], $roi['w'], $roi['h']);
+    imagedestroy($img);
+
+    $tmp = tempnam(sys_get_temp_dir(), 'ocrroi_');
+    if (!$tmp) {
+        imagedestroy($crop);
+        return null;
+    }
+    $tmpPng = $tmp . '.png';
+    @unlink($tmp);
+    imagepng($crop, $tmpPng, 9);
+    imagedestroy($crop);
+    return $tmpPng;
+}
+
+function best_digit_distance($digits, $target) {
+    $digits = preg_replace('/\D/', '', $digits);
+    $target = preg_replace('/\D/', '', $target);
+    $len = strlen($target);
+    if ($len === 0 || strlen($digits) < $len) return null;
+
+    $best = null;
+    for ($i = 0; $i <= strlen($digits) - $len; $i++) {
+        $window = substr($digits, $i, $len);
+        $dist = 0;
+        for ($j = 0; $j < $len; $j++) {
+            if ($window[$j] !== $target[$j]) $dist++;
+        }
+        if ($best === null || $dist < $best) $best = $dist;
+        if ($best === 0) return 0;
+    }
+    return $best;
+}
+
+function run_ocr_text($imagePath) {
+    $tesseract = getenv('TESSERACT_BIN');
+    if (!$tesseract) {
+        $tesseract = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe';
+    }
+    if (!file_exists($tesseract)) {
+        error_log('Tesseract not found at: ' . $tesseract);
+        return null;
+    }
+
+    $base = tempnam(sys_get_temp_dir(), 'ocr_');
+    if ($base === false) return null;
+    // Tesseract expects output base without extension
+    @unlink($base);
+
+    $cmd = '"' . $tesseract . '" ' . escapeshellarg($imagePath) . ' ' . escapeshellarg($base) . ' --oem 1 --psm 6';
+    $output = [];
+    $code = 0;
+    exec($cmd, $output, $code);
+    $txtFile = $base . '.txt';
+
+    if ($code !== 0 || !file_exists($txtFile)) {
+        error_log('OCR failed with code ' . $code . ' for file: ' . $imagePath);
+        if (file_exists($txtFile)) @unlink($txtFile);
+        return null;
+    }
+
+    $text = file_get_contents($txtFile);
+    @unlink($txtFile);
+    return $text !== false ? $text : null;
+}
+
+function run_ocr_digits($imagePath, $psm = 7) {
+    $tesseract = getenv('TESSERACT_BIN');
+    if (!$tesseract) {
+        $tesseract = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe';
+    }
+    if (!file_exists($tesseract)) {
+        error_log('Tesseract not found at: ' . $tesseract);
+        return null;
+    }
+
+    $preprocessed = preprocess_id_image($imagePath);
+    $inputPath = $preprocessed ?: $imagePath;
+
+    $base = tempnam(sys_get_temp_dir(), 'ocrd_');
+    if ($base === false) return null;
+    @unlink($base);
+
+    $cmd = '"' . $tesseract . '" ' . escapeshellarg($inputPath) . ' ' . escapeshellarg($base) . ' --oem 1 --psm ' . (int)$psm . ' -c tessedit_char_whitelist=0123456789 -c classify_bln_numeric_mode=1 -c user_defined_dpi=300';
+    $output = [];
+    $code = 0;
+    exec($cmd, $output, $code);
+    $txtFile = $base . '.txt';
+
+    if ($code !== 0 || !file_exists($txtFile)) {
+        error_log('OCR digits failed with code ' . $code . ' for file: ' . $imagePath);
+        if (file_exists($txtFile)) @unlink($txtFile);
+        return null;
+    }
+
+    $text = file_get_contents($txtFile);
+    @unlink($txtFile);
+    if ($preprocessed && file_exists($preprocessed)) {
+        @unlink($preprocessed);
+    }
+    return $text !== false ? $text : null;
+}
+
+function id_marker_present($idType, $ocrText) {
+    $t = strtoupper($ocrText);
+    switch ($idType) {
+        case 'passport':
+            return (strpos($t, 'PASSPORT') !== false);
+        case 'drivers':
+            return (strpos($t, 'DRIVER') !== false || strpos($t, 'LICENSE') !== false || strpos($t, 'LICENCE') !== false);
+        case 'national':
+            return (strpos($t, 'PHILIPPINES') !== false || strpos($t, 'PAMBANSANG') !== false || strpos($t, 'REPUBLIKA') !== false);
+        case 'philhealth':
+            return (strpos($t, 'PHILHEALTH') !== false || strpos($t, 'PHIL HEALTH') !== false);
+        case 'sss':
+            return (strpos($t, 'SSS') !== false || strpos($t, 'SOCIAL SECURITY') !== false);
+        default:
+            return true;
+    }
+}
+
+function preprocess_id_image($imagePath) {
+    if (!function_exists('imagecreatefromjpeg')) return null;
+
+    $mime = mime_content_type($imagePath);
+    if ($mime === 'image/jpeg') {
+        $img = @imagecreatefromjpeg($imagePath);
+    } elseif ($mime === 'image/png') {
+        $img = @imagecreatefrompng($imagePath);
+    } else {
+        return null;
+    }
+    if (!$img) return null;
+
+    $w = imagesx($img);
+    $h = imagesy($img);
+    $targetW = $w < 1400 ? 1400 : $w;
+    $scale = $targetW / $w;
+    $targetH = (int)round($h * $scale);
+
+    $resized = imagecreatetruecolor($targetW, $targetH);
+    imagecopyresampled($resized, $img, 0, 0, 0, 0, $targetW, $targetH, $w, $h);
+    imagedestroy($img);
+
+    imagefilter($resized, IMG_FILTER_GRAYSCALE);
+    imagefilter($resized, IMG_FILTER_CONTRAST, -30);
+    imagefilter($resized, IMG_FILTER_BRIGHTNESS, 10);
+
+    // Simple thresholding to boost digit contrast
+    $black = imagecolorallocate($resized, 0, 0, 0);
+    $white = imagecolorallocate($resized, 255, 255, 255);
+    for ($y = 0; $y < $targetH; $y++) {
+        for ($x = 0; $x < $targetW; $x++) {
+            $rgb = imagecolorat($resized, $x, $y);
+            $val = $rgb & 0xFF;
+            imagesetpixel($resized, $x, $y, ($val > 155) ? $white : $black);
+        }
+    }
+
+    $tmp = tempnam(sys_get_temp_dir(), 'ocrp_');
+    if (!$tmp) {
+        imagedestroy($resized);
+        return null;
+    }
+    $tmpPng = $tmp . '.png';
+    @unlink($tmp);
+    imagepng($resized, $tmpPng, 9);
+    imagedestroy($resized);
+    return $tmpPng;
+}
+
 // If username is not provided, derive one from email local-part or generate a fallback
 if (empty($username)) {
     $local = strstr($email, '@', true);
@@ -177,6 +515,127 @@ if (!in_array($fileType, $allowedTypes)) {
     exit;
 }
 
+// OCR-based ID number matching (images only)
+if ($fileType === 'application/pdf') {
+    echo json_encode(["status"=>"error","message"=>"Please upload an image of your ID so we can verify the ID number."]);
+    exit;
+}
+
+$ocrText = run_ocr_text($_FILES['idFile']['tmp_name']);
+if ($ocrText === null) {
+    echo json_encode(["status"=>"error","message"=>"Unable to read the ID image. Please upload a clearer photo."]);
+    exit;
+}
+
+if (!id_marker_present($id_type, $ocrText)) {
+    echo json_encode(["status"=>"error","message"=>"Uploaded image does not look like a valid ID. Please upload the correct ID."]);
+    exit;
+}
+
+$ocrDigitsSource = $_FILES['idFile']['tmp_name'];
+$ocrDigitsTemp = null;
+if (!empty($_POST['id_crop'])) {
+    $crop = $_POST['id_crop'];
+    if (preg_match('/^data:image\/(png|jpeg);base64,/', $crop)) {
+        $crop = substr($crop, strpos($crop, ',') + 1);
+        $cropData = base64_decode($crop, true);
+        if ($cropData !== false) {
+            $ocrDigitsTemp = tempnam(sys_get_temp_dir(), 'idcrop_');
+            if ($ocrDigitsTemp) {
+                file_put_contents($ocrDigitsTemp, $cropData);
+                $ocrDigitsSource = $ocrDigitsTemp;
+            }
+        }
+    }
+}
+
+$ocrDigitsText7 = run_ocr_digits($ocrDigitsSource, 7);
+$ocrDigitsText6 = run_ocr_digits($ocrDigitsSource, 6);
+$ocrDigitsText11 = run_ocr_digits($ocrDigitsSource, 11);
+
+$roiDigitsText = null;
+$roiTemp = null;
+$roi = find_id_number_roi($_FILES['idFile']['tmp_name']);
+if ($roi) {
+    $roiTemp = crop_image_region($_FILES['idFile']['tmp_name'], $roi);
+    if ($roiTemp) {
+        $roiDigitsText = run_ocr_digits($roiTemp, 7);
+        @unlink($roiTemp);
+    }
+}
+
+$ocrNormalized = normalize_ocr_text($ocrText);
+$ocrDigits = normalize_ocr_digits($ocrText);
+
+$digitCandidates = [];
+foreach ([$ocrDigitsText7, $ocrDigitsText6, $ocrDigitsText11, $roiDigitsText, $ocrText] as $txt) {
+    foreach (extract_digit_candidates($txt) as $cand) {
+        $digitCandidates[$cand] = true;
+    }
+}
+
+if ($ocrDigitsTemp && file_exists($ocrDigitsTemp)) {
+    @unlink($ocrDigitsTemp);
+}
+
+$ocrDigitsOnly = '';
+foreach (array_keys($digitCandidates) as $cand) {
+    if (strlen($cand) > strlen($ocrDigitsOnly)) {
+        $ocrDigitsOnly = $cand;
+    }
+}
+$idNormalized = normalize_id_for_ocr($id_type, $id_number);
+
+if (in_array($id_type, ['national', 'philhealth', 'sss']) && strlen($ocrDigitsOnly) < 6) {
+    // Log digits-only output for debugging
+    $debugDir = __DIR__ . '/../logs/ocr/';
+    if (!is_dir($debugDir)) {
+        @mkdir($debugDir, 0755, true);
+    }
+    $debugFile = $debugDir . date('Ymd_His') . '_ocr_digits_only.txt';
+    $debugPayload = "ID_TYPE={$id_type}\n" .
+        "ID_INPUT={$id_number}\n" .
+        "OCR_DIGITS_ONLY={$ocrDigitsOnly}\n";
+    @file_put_contents($debugFile, $debugPayload);
+
+    echo json_encode(["status"=>"error","message"=>"Unable to read the ID number clearly. Please upload a clearer ID photo."]);
+    exit;
+}
+
+$match = $idNormalized && (strpos($ocrNormalized, $idNormalized) !== false);
+if (!$match && in_array($id_type, ['national', 'philhealth', 'sss'])) {
+    $match = isset($digitCandidates[$idNormalized]);
+}
+
+if (!$match && in_array($id_type, ['national', 'philhealth', 'sss'])) {
+    $bestDist = best_digit_distance($ocrDigitsOnly, $idNormalized);
+    if ($bestDist !== null && $bestDist <= 2) {
+        $match = true;
+    }
+}
+
+if (!$match) {
+    // Temporary OCR debug log to diagnose mismatches
+    $debugDir = __DIR__ . '/../logs/ocr/';
+    if (!is_dir($debugDir)) {
+        @mkdir($debugDir, 0755, true);
+    }
+    $debugFile = $debugDir . date('Ymd_His') . '_ocr_debug.txt';
+    $bestDistLog = isset($bestDist) ? $bestDist : 'n/a';
+    $debugPayload = "ID_TYPE={$id_type}\n" .
+        "ID_INPUT={$id_number}\n" .
+        "ID_NORMALIZED={$idNormalized}\n" .
+        "OCR_NORMALIZED={$ocrNormalized}\n" .
+        "OCR_DIGITS={$ocrDigits}\n" .
+        "OCR_DIGITS_ONLY={$ocrDigitsOnly}\n" .
+        "OCR_BEST_DISTANCE={$bestDistLog}\n" .
+        "OCR_RAW=\n" . $ocrText . "\n";
+    @file_put_contents($debugFile, $debugPayload);
+
+    echo json_encode(["status"=>"error","message"=>"The ID number does not match the uploaded ID or could not be read. Please upload a clearer photo of the correct ID."]);
+    exit;
+}
+
 $targetDir = __DIR__ . "/../../uploads/patients/";
 if (!is_dir($targetDir)) mkdir($targetDir, 0755, true);
 
@@ -189,9 +648,24 @@ if (!move_uploaded_file($_FILES['idFile']['tmp_name'], $id_file_path)) {
 }
 
 // --- Insert into DB ---
+// First, check if an unapproved/failed registration exists for this email and clean it up
+$cleanup_stmt = $conn->prepare("DELETE FROM RegPatient WHERE email = ? AND created_at < DATE_SUB(NOW(), INTERVAL 5 MINUTE)");
+if ($cleanup_stmt) {
+    $cleanup_stmt->bind_param("s", $email);
+    $cleanup_stmt->execute();
+    $cleanup_stmt->close();
+}
+
 // Only mark face_verified if client explicitly confirmed face verification; defaults to 0
 $face_verified = (isset($_POST['face_verified']) && $_POST['face_verified'] == '1') ? 1 : 0;
-$email_verified = 0; // Not verified until email confirmation
+
+// Use OTP session verification and skip post-registration email verification
+$session_email = $_SESSION['verified_email'] ?? '';
+$email_verified = ($session_email && strcasecmp($session_email, $email) === 0) ? 1 : 0;
+if (!$email_verified) {
+    echo json_encode(["status" => "error", "message" => "Please verify your email with OTP before registering."]);
+    exit;
+}
 
 $stmt = $conn->prepare("
     INSERT INTO RegPatient
@@ -223,92 +697,36 @@ $stmt->bind_param("ssssssssssssii",
 );
 
 if ($stmt->execute()) {
-    // Generate verification token
-    $verification_token = bin2hex(random_bytes(32));
-    $token_hash = hash('sha256', $verification_token);
-    $expires_at = date('Y-m-d H:i:s', strtotime('+24 hours'));
-    
-    // Update user with verification token
-    $update_stmt = $conn->prepare("UPDATE RegPatient SET email_verification_token = ?, email_verification_expires = ? WHERE email = ?");
-    if (!$update_stmt) {
-        error_log('DB prepare failed (update token): ' . $conn->error);
-        // We consider this non-fatal for the user; return success but log for investigation
-        echo json_encode(["status"=>"success","message"=>"Registered successfully. Failed to set verification token; contact support."]); exit;
-    }
-    $update_stmt->bind_param("sss", $token_hash, $expires_at, $email);
-    
-    if ($update_stmt->execute()) {
-        // Send verification email
-        $verification_link = "http://yoursite.com/auth/verify-email.html?token=" . $verification_token . "&type=patient";
-        
-        $subject = "Email Verification - LYINGIN Healthcare";
-        $message = "
-        <html>
-        <head>
-            <style>
-                body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
-                .container { max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; }
-                .header { background-color: #2c3e50; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
-                .content { padding: 20px; }
-                .button { display: inline-block; background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin-top: 20px; }
-                .footer { background-color: #ecf0f1; padding: 10px; text-align: center; font-size: 12px; color: #7f8c8d; }
-            </style>
-        </head>
-        <body>
-            <div class='container'>
-                <div class='header'>
-                    <h2>Email Verification</h2>
-                </div>
-                <div class='content'>
-                    <p>Welcome, $first_name $last_name!</p>
-                    <p>Thank you for registering with LYINGIN Healthcare Management System.</p>
-                    <p>Please verify your email address by clicking the button below:</p>
-                    <a href='" . htmlspecialchars($verification_link) . "' class='button'>Verify Email</a>
-                    <p style='margin-top: 20px; color: #7f8c8d; font-size: 14px;'>
-                        If you didn't register, please ignore this email.
-                    </p>
-                    <p style='color: #7f8c8d; font-size: 12px;'>
-                        This link expires in 24 hours.
-                    </p>
-                </div>
-                <div class='footer'>
-                    <p>LYINGIN - Healthcare Management System</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        ";
-        
-        $headers = "MIME-Version: 1.0" . "\r\n";
-        $headers .= "Content-type: text/html; charset=UTF-8" . "\r\n";
-        $headers .= "From: tandicoalessandranicole@gmail.com" . "\r\n";
-        
-        // Try to send verification email (SendGrid preferred, then SMTP, then PHP mail)
-        $sendRes = sendVerificationEmail($email, $subject, $message);
-        if ($sendRes === 'OK') {
-            echo json_encode([
-                "status" => "success",
-                "message" => "Patient registered successfully! A verification email has been sent to $email. Please verify your email to complete registration.",
-                "redirect" => "/auth/verify-pending.html"
-            ]);
-        } else {
-            // Email failed — save a copy to server logs so support can retry/deliver manually
-            $savedPath = saveEmailToFile($email, $subject, $message);
-            error_log('Email delivery failed: ' . $sendRes . ' — saved to: ' . $savedPath);
-
-            echo json_encode([
-                "status" => "success",
-                "message" => "Patient registered successfully! However, we couldn't send the verification email. A copy was saved on the server for manual delivery; please check your email or contact support.",
-                "redirect" => "/auth/verify-pending.html"
-            ]);
-        }
-    } else {
-        echo json_encode(["status" => "error", "message" => "Registration failed. Please try again."]);
-    }
-    
-    $update_stmt->close();
+    echo json_encode([
+        "status" => "success",
+        "message" => "Patient registered successfully!",
+        "redirect" => "/auth/login.html"
+    ]);
 } else {
-    echo json_encode(["status"=>"error","message"=>"DB Error: ".$stmt->error]);
+    // Handle INSERT errors, especially duplicate token issues
+    $error = $stmt->error;
+    error_log('Registration INSERT failed: ' . $error . ' for email: ' . $email);
+    
+    // Check if it's a duplicate token error (shouldn't happen, but cleanup doesn't always catch it)
+    if (strpos($error, 'email_verification_token') !== false && strpos($error, 'Duplicate') !== false) {
+        // Force cleanup: delete any existing records with same email and token
+        $force_cleanup = $conn->prepare("DELETE FROM RegPatient WHERE email = ?");
+        if ($force_cleanup) {
+            $force_cleanup->bind_param("s", $email);
+            $force_cleanup->execute();
+            $force_cleanup->close();
+        }
+        echo json_encode(["status"=>"error","message"=>"A previous registration attempt exists for this email. Please try registering again."]);
+        exit;
+    }
+    
+    // Check for duplicate email registration
+    if (strpos($error, 'email') !== false && strpos($error, 'Duplicate') !== false) {
+        echo json_encode(["status"=>"error","message"=>"This email is already registered. Please use a different email or log in."]);
+        exit;
+    }
+    
+    echo json_encode(["status"=>"error","message"=>"DB Error: ".$error]);
 }
 
 $stmt->close();
@@ -419,7 +837,8 @@ function sendVerificationEmail($to_email, $subject, $html_body) {
         $headers = "MIME-Version: 1.0" . "\r\n";
         $headers .= "Content-type: text/html; charset=UTF-8" . "\r\n";
         $headers .= "From: " . $mailFrom . "\r\n";
-        $sent = mail($to_email, $subject, $html_body, $headers);
+        // Suppress warnings from mail() - it will still return false if it fails
+        $sent = @mail($to_email, $subject, $html_body, $headers);
         return $sent ? 'OK' : 'mail_failed';
     }
 

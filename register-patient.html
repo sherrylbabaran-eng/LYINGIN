@@ -140,7 +140,7 @@
                                     <label class="form-label">Email Address</label>
                                     <div class="input-group">
                                         <input type="email" id="emailInput" name="email" class="form-control" required>
-                                        <button class="btn btn-outline-primary" type="button" id="verifyEmailBtn">Verify</button>
+                                        <button class="btn btn-outline-primary d-none" type="button" id="verifyEmailBtn">Verify</button>
                                     </div>
                                     <div id="emailVerificationStatus" class="mt-2"></div>
                                 </div>
@@ -173,10 +173,13 @@
                                 <div class="col-md-6">
                                     <label class="form-label">Password</label>
                                     <input type="password" name="password" class="form-control" required>
+                                    <small class="text-muted d-block">At least 8 chars, 2 uppercase, 1 lowercase, 1 number, 1 symbol.</small>
+                                    <small class="text-danger d-none" id="passwordError">Password does not meet requirements.</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Confirm Password</label>
                                     <input type="password" name="confirm_password" class="form-control" required>
+                                    <small class="text-danger d-none" id="confirmPasswordError">Passwords do not match.</small>
                                 </div>
                             </div>
 
@@ -206,6 +209,7 @@
                                     <label class="form-label">Upload Valid ID</label>
                                     <input type="file" id="idFile" name="idFile" class="form-control" accept="image/*,.pdf" required>
                                     <small class="text-danger d-none" id="fileError">Invalid file (JPG, PNG, PDF only / max 5MB)</small>
+                                    <small class="text-muted d-none" id="fileNote"></small>
                                 </div>
 
                                 <div class="col-12">
@@ -296,6 +300,31 @@
     </div>
 </div>
 
+<!-- ID NUMBER CROP MODAL -->
+<div class="modal fade" id="idCropModal" tabindex="-1" aria-labelledby="idCropLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="idCropLabel">Crop ID Number</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-2">Drag to select only the ID number area so we can read it clearly.</p>
+                <div class="border rounded" style="overflow:hidden;">
+                    <canvas id="idCropCanvas" style="width:100%;display:block;"></canvas>
+                </div>
+                <small class="text-muted d-block mt-2">Tip: focus on the number line only.</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary" id="idCropResetBtn">Reset</button>
+                <button type="button" class="btn btn-primary" id="idCropConfirmBtn">Use Crop</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <!-- OTP VERIFICATION MODAL -->
 <div class="modal fade" id="otpVerificationModal" tabindex="-1" aria-labelledby="otpVerificationLabel" aria-hidden="true">
     <div class="modal-dialog modal-sm">
@@ -322,7 +351,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="submitOtpBtn">Verify OTP</button>
+                <button type="button" class="btn btn-link" id="resendOtpBtn">Resend OTP</button>
             </div>
         </div>
     </div>
@@ -562,6 +591,24 @@ const idType = document.getElementById('idType');
 const idFile = document.getElementById('idFile');
 const idError = document.getElementById('idError');
 const fileError = document.getElementById('fileError');
+const fileNote = document.getElementById('fileNote');
+const passwordInput = document.querySelector('input[name="password"]');
+const confirmPasswordInput = document.querySelector('input[name="confirm_password"]');
+const passwordError = document.getElementById('passwordError');
+const confirmPasswordError = document.getElementById('confirmPasswordError');
+let idCropDataUrl = null;
+let idCropImage = null;
+let idCropRect = null;
+let idCropDragging = false;
+let idCropStart = null;
+let idCropScale = 1;
+let idCropReady = false;
+
+const idCropModalEl = document.getElementById('idCropModal');
+const idCropCanvas = document.getElementById('idCropCanvas');
+const idCropCtx = idCropCanvas ? idCropCanvas.getContext('2d', { willReadFrequently: true }) : null;
+const idCropConfirmBtn = document.getElementById('idCropConfirmBtn');
+const idCropResetBtn = document.getElementById('idCropResetBtn');
 
 const idRules = {
     passport: /^[A-Z0-9]{6,9}$/i,
@@ -570,6 +617,170 @@ const idRules = {
     philhealth: /^\d{12,14}$/,
     sss: /^\d{10,12}$/
 };
+
+function drawIdCropCanvas() {
+    if (!idCropCanvas || !idCropCtx || !idCropImage) return;
+    const maxWidth = idCropCanvas.parentElement ? idCropCanvas.parentElement.clientWidth : 600;
+    const targetWidth = Math.min(900, Math.max(320, maxWidth));
+    const scale = idCropImage.width / targetWidth;
+    idCropScale = scale;
+    idCropCanvas.width = targetWidth;
+    idCropCanvas.height = Math.round(idCropImage.height / scale);
+
+    idCropCtx.clearRect(0, 0, idCropCanvas.width, idCropCanvas.height);
+    idCropCtx.drawImage(idCropImage, 0, 0, idCropCanvas.width, idCropCanvas.height);
+
+    if (idCropRect) {
+        idCropCtx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        idCropCtx.fillRect(0, 0, idCropCanvas.width, idCropCanvas.height);
+        // Redraw the image only in the crop area so it isn't cleared to transparent.
+        idCropCtx.drawImage(
+            idCropImage,
+            idCropRect.x * idCropScale,
+            idCropRect.y * idCropScale,
+            idCropRect.w * idCropScale,
+            idCropRect.h * idCropScale,
+            idCropRect.x,
+            idCropRect.y,
+            idCropRect.w,
+            idCropRect.h
+        );
+        idCropCtx.strokeStyle = '#00c853';
+        idCropCtx.lineWidth = 2;
+        idCropCtx.strokeRect(idCropRect.x, idCropRect.y, idCropRect.w, idCropRect.h);
+    }
+}
+
+function openIdCropModal(dataUrl) {
+    if (!idCropModalEl || !idCropCanvas || !idCropCtx) return;
+    idCropRect = null;
+    idCropDataUrl = null;
+    idCropReady = false;
+    idCropImage = new Image();
+    idCropImage.onload = () => {
+        idCropReady = true;
+        const modal = bootstrap.Modal.getOrCreateInstance(idCropModalEl);
+        modal.show();
+    };
+    idCropImage.src = dataUrl;
+}
+
+if (idCropModalEl) {
+    idCropModalEl.addEventListener('shown.bs.modal', () => {
+        if (idCropReady) {
+            // Ensure layout is finalized before measuring width and drawing.
+            requestAnimationFrame(() => drawIdCropCanvas());
+        }
+    });
+}
+
+if (idCropCanvas) {
+    idCropCanvas.addEventListener('pointerdown', (e) => {
+        const rect = idCropCanvas.getBoundingClientRect();
+        idCropDragging = true;
+        idCropStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        idCropRect = { x: idCropStart.x, y: idCropStart.y, w: 0, h: 0 };
+        drawIdCropCanvas();
+    });
+    idCropCanvas.addEventListener('pointermove', (e) => {
+        if (!idCropDragging || !idCropStart) return;
+        const rect = idCropCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        idCropRect = {
+            x: Math.min(idCropStart.x, x),
+            y: Math.min(idCropStart.y, y),
+            w: Math.abs(x - idCropStart.x),
+            h: Math.abs(y - idCropStart.y)
+        };
+        drawIdCropCanvas();
+    });
+    idCropCanvas.addEventListener('pointerup', () => {
+        idCropDragging = false;
+    });
+    idCropCanvas.addEventListener('pointerleave', () => {
+        idCropDragging = false;
+    });
+}
+
+if (idCropResetBtn) {
+    idCropResetBtn.addEventListener('click', () => {
+        idCropRect = null;
+        drawIdCropCanvas();
+    });
+}
+
+if (idCropConfirmBtn) {
+    idCropConfirmBtn.addEventListener('click', () => {
+        if (!idCropRect || idCropRect.w < 30 || idCropRect.h < 15) {
+            if (fileNote) {
+                fileNote.textContent = 'Please select the ID number area before continuing.';
+                fileNote.classList.remove('d-none');
+            }
+            return;
+        }
+        const cropCanvas = document.createElement('canvas');
+        const srcX = Math.round(idCropRect.x * idCropScale);
+        const srcY = Math.round(idCropRect.y * idCropScale);
+        const srcW = Math.round(idCropRect.w * idCropScale);
+        const srcH = Math.round(idCropRect.h * idCropScale);
+        cropCanvas.width = Math.max(1, srcW);
+        cropCanvas.height = Math.max(1, srcH);
+        const cropCtx = cropCanvas.getContext('2d');
+        if (!idCropImage) return;
+        cropCtx.drawImage(idCropImage, srcX, srcY, srcW, srcH, 0, 0, cropCanvas.width, cropCanvas.height);
+        idCropDataUrl = cropCanvas.toDataURL('image/jpeg', 0.9);
+        if (fileNote) {
+            fileNote.textContent = 'ID number crop saved.';
+            fileNote.classList.remove('d-none');
+        }
+        const modal = bootstrap.Modal.getOrCreateInstance(idCropModalEl);
+        modal.hide();
+    });
+}
+
+
+function validatePasswordStrength() {
+    if (!passwordInput) return true;
+    const value = passwordInput.value || '';
+    const upper = (value.match(/[A-Z]/g) || []).length;
+    const lower = (value.match(/[a-z]/g) || []).length;
+    const number = (value.match(/[0-9]/g) || []).length;
+    const special = (value.match(/[^A-Za-z0-9]/g) || []).length;
+
+    const valid = value.length >= 8 && upper >= 2 && lower >= 1 && number >= 1 && special >= 1;
+    if (!valid && value.length > 0) {
+        passwordInput.classList.add('is-invalid');
+        if (passwordError) passwordError.classList.remove('d-none');
+    } else {
+        passwordInput.classList.remove('is-invalid');
+        if (passwordError) passwordError.classList.add('d-none');
+    }
+    return valid;
+}
+
+function validatePasswordMatch() {
+    if (!confirmPasswordInput) return true;
+    const match = confirmPasswordInput.value === (passwordInput ? passwordInput.value : '');
+    if (!match && confirmPasswordInput.value.length > 0) {
+        confirmPasswordInput.classList.add('is-invalid');
+        if (confirmPasswordError) confirmPasswordError.classList.remove('d-none');
+    } else {
+        confirmPasswordInput.classList.remove('is-invalid');
+        if (confirmPasswordError) confirmPasswordError.classList.add('d-none');
+    }
+    return match;
+}
+
+if (passwordInput) {
+    passwordInput.addEventListener('input', () => {
+        validatePasswordStrength();
+        validatePasswordMatch();
+    });
+}
+if (confirmPasswordInput) {
+    confirmPasswordInput.addEventListener('input', validatePasswordMatch);
+}
 
 idNumber.addEventListener('input', () => {
     const type = idType.value;
@@ -638,17 +849,104 @@ idType.addEventListener('change', () => {
 // Set initial helper text on load
 updateIdFormatHelp();
 
+idFile.addEventListener('click', () => {
+    // Ensure re-selecting the same file still triggers a change event.
+    idFile.value = '';
+    idCropDataUrl = null;
+    idCropRect = null;
+    if (fileNote) fileNote.classList.add('d-none');
+});
+
 idFile.addEventListener('change', () => {
     const file = idFile.files[0];
     const maxSize = 5 * 1024 * 1024;
-    if (!file || file.size > maxSize || !file.type.match(/(image|pdf)/)) {
-        fileError.classList.remove('d-none');
+    const setIdFileError = (message) => {
+        if (fileError) {
+            fileError.textContent = message;
+            fileError.classList.remove('d-none');
+        }
+        if (fileNote) fileNote.classList.add('d-none');
         idFile.classList.add('is-invalid');
-        idFile.value = '';
-    } else {
-        fileError.classList.add('d-none');
+        idFile.dataset.qualityOk = '0';
+    };
+    const clearIdFileMessages = () => {
+        if (fileError) fileError.classList.add('d-none');
+        if (fileNote) fileNote.classList.add('d-none');
         idFile.classList.remove('is-invalid');
+        idFile.dataset.qualityOk = '1';
+    };
+    const setIdFileNote = (message) => {
+        if (fileNote) {
+            fileNote.textContent = message;
+            fileNote.classList.remove('d-none');
+        }
+    };
+
+    idCropDataUrl = null;
+    idCropRect = null;
+    if (!file || file.size > maxSize || !file.type.match(/(image|pdf)/)) {
+        setIdFileError('Invalid file (JPG, PNG, PDF only / max 5MB)');
+        idFile.value = '';
+        return;
     }
+
+    clearIdFileMessages();
+
+    if (file.type === 'application/pdf') {
+        setIdFileNote('PDF uploaded. Please ensure the ID is clear; face quality cannot be checked.');
+        idFile.dataset.qualityOk = '1';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const targetW = 360;
+            const scale = img.width / targetW;
+            canvas.width = targetW;
+            canvas.height = Math.round(img.height / scale);
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            const blurScore = (() => {
+                const w = canvas.width;
+                const h = canvas.height;
+                const data = ctx.getImageData(0, 0, w, h).data;
+                const gray = new Float32Array(w * h);
+                for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+                    gray[j] = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+                }
+                let sum = 0;
+                let sumSq = 0;
+                let count = 0;
+                for (let y = 1; y < h - 1; y++) {
+                    for (let x = 1; x < w - 1; x++) {
+                        const idx = y * w + x;
+                        const lap = (-4 * gray[idx]) + gray[idx - 1] + gray[idx + 1] + gray[idx - w] + gray[idx + w];
+                        sum += lap;
+                        sumSq += lap * lap;
+                        count++;
+                    }
+                }
+                const mean = sum / (count || 1);
+                return (sumSq / (count || 1)) - (mean * mean);
+            })();
+
+            const brightness = getAverageBrightness(canvas);
+            if (blurScore < 50 || brightness < 40) {
+                setIdFileError('Image looks blurry or too dark. Please upload a clearer ID photo.');
+                return;
+            }
+
+            clearIdFileMessages();
+            openIdCropModal(e.target.result);
+        };
+        img.onerror = () => setIdFileError('Could not read the ID image. Please upload a clearer photo.');
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
 });
 
 // --- Form submission with fetch ---
@@ -657,8 +955,24 @@ const patientForm = document.getElementById('patientForm');
 patientForm.addEventListener('submit', e => {
     e.preventDefault();
 
+    const passOk = validatePasswordStrength();
+    const matchOk = validatePasswordMatch();
+    if (!passOk || !matchOk) {
+        alert('Please fix the password requirements before submitting.');
+        return;
+    }
+
     if (idNumber.classList.contains('is-invalid') || idFile.classList.contains('is-invalid') || !idType.value) {
         alert('Please provide a valid ID before submitting.');
+        return;
+    }
+
+    if (idFile && idFile.files && idFile.files[0] && idFile.files[0].type !== 'application/pdf' && !idCropDataUrl) {
+        alert('Please crop the ID number area before submitting.');
+        if (fileNote) {
+            fileNote.textContent = 'Please use the crop tool to select the ID number area.';
+            fileNote.classList.remove('d-none');
+        }
         return;
     }
 
@@ -669,6 +983,9 @@ patientForm.addEventListener('submit', e => {
     }
 
     const formData = new FormData(patientForm);
+    if (idCropDataUrl) {
+        formData.append('id_crop', idCropDataUrl);
+    }
 
     // Use a root-absolute API path to avoid relative-path 404s when served from nested pages
     fetch('/THESIS/LYINGIN/auth/api/register-patient.php', {
@@ -689,15 +1006,7 @@ patientForm.addEventListener('submit', e => {
     .then(data => {
         alert(data.message);
         if (data.status === 'success') {
-            patientForm.reset();
-            window.faceVerificationComplete = false;
-            updateFaceVerificationUI();
-            // Return to Step 1
-            step2.classList.add('d-none');
-            step1.classList.remove('d-none');
-            stepTabs[1].classList.add('disabled');
-            stepTabs[1].classList.remove('active');
-            stepTabs[0].classList.add('active');
+            resetRegistrationFormState();
         }
     })
     .catch(err => {
@@ -811,7 +1120,7 @@ function showVerificationStatus(message, type = 'info') {
 
 // Compute average brightness from a canvas (center region)
 function getAverageBrightness(canvas) {
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const w = Math.max(10, Math.round(canvas.width * 0.15));
     const h = Math.max(10, Math.round(canvas.height * 0.15));
     const sx = Math.round((canvas.width - w) / 2);
@@ -839,7 +1148,7 @@ function checkLighting() {
     const w = Math.max(30, Math.round(vw * 0.2));
     const h = Math.max(30, Math.round(vh * 0.2));
     temp.width = w; temp.height = h;
-    const ctx = temp.getContext('2d');
+    const ctx = temp.getContext('2d', { willReadFrequently: true });
     try {
         ctx.drawImage(videoStream, Math.round((vw-w)/2), Math.round((vh-h)/2), w, h, 0, 0, w, h);
         const avg = getAverageBrightness(temp);
@@ -869,7 +1178,7 @@ async function toggleTorch() {
 
 // Simple canvas enhancement: adjust brightness towards a target and add slight contrast
 function enhanceCanvas(canvas) {
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imgData.data;
     let sum = 0;
@@ -1064,6 +1373,10 @@ idFile.addEventListener('change', async (event) => {
     const file = event.target.files[0];
     
     if (!file) return;
+    if (idFile.dataset.qualityOk === '0') {
+        idPhotoDescriptor = null;
+        return;
+    }
     
     // If it's a PDF, we can't extract face from it
     if (file.type === 'application/pdf') {
@@ -1090,6 +1403,11 @@ idFile.addEventListener('change', async (event) => {
                 } catch (error) {
                     console.log('Could not extract face from ID photo:', error.message);
                     idPhotoDescriptor = null;
+                    if (fileError) {
+                        fileError.textContent = 'Could not detect a face on the ID. Please upload a clearer ID with your face visible.';
+                        fileError.classList.remove('d-none');
+                        idFile.classList.add('is-invalid');
+                    }
                 }
             };
             img.src = e.target.result;
@@ -1159,6 +1477,9 @@ confirmFaceBtn.addEventListener('click', () => {
 document.getElementById('faceVerificationModal').addEventListener('show.bs.modal', async () => {
     await loadFaceModels();
     // auto-start camera for convenience
+    if (confirmFaceBtn) confirmFaceBtn.style.display = 'none';
+    if (verificationResult) verificationResult.innerHTML = '';
+    if (previewArea) previewArea.style.display = 'none';
     startCamera();
 });
 
@@ -1169,87 +1490,240 @@ const emailInput = document.getElementById('emailInput');
 const verifyEmailBtn = document.getElementById('verifyEmailBtn');
 const emailVerificationStatus = document.getElementById('emailVerificationStatus');
 
-verifyEmailBtn.addEventListener('click', async function() {
-    const email = emailInput.value.trim();
-    
-    // Validate email format
-    if (!email || !email.includes('@')) {
-        showEmailStatus('Please enter a valid email address', 'danger');
+if (verifyEmailBtn) {
+    verifyEmailBtn.classList.add('d-none');
+}
+
+const OTP_RESEND_COOLDOWN_MS = 60000;
+let otpSendInProgress = false;
+let lastOtpEmail = '';
+let lastOtpSentAt = 0;
+let otpDebounceId = null;
+let lastOtpNoticeAt = 0;
+
+function showOtpModalMessage(message, type = 'info', openModal = true) {
+    const otpModalEl = document.getElementById('otpVerificationModal');
+    const otpErrorMsg = document.getElementById('otpErrorMsg');
+    if (otpErrorMsg) {
+        otpErrorMsg.innerHTML = `<div class="alert alert-${type} mb-0 small">${message}</div>`;
+        setTimeout(() => {
+            if (otpErrorMsg) otpErrorMsg.innerHTML = '';
+        }, 4000);
+    }
+    if (openModal && otpModalEl) {
+        const modal = bootstrap.Modal.getOrCreateInstance(otpModalEl);
+        modal.show();
+    }
+}
+
+function cleanupModalBackdrops() {
+    const anyOpen = document.querySelector('.modal.show');
+    if (anyOpen) return;
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+}
+
+function resetRegistrationFormState() {
+    if (patientForm) patientForm.reset();
+
+    // Stop camera and clear face state
+    stopCamera();
+    window.faceVerificationComplete = false;
+    updateFaceVerificationUI();
+    capturedFaceImage = null;
+    capturedFaceDescriptor = null;
+    idPhotoDescriptor = null;
+    if (previewImage) previewImage.src = '';
+    if (previewArea) previewArea.style.display = 'none';
+    if (verificationResult) verificationResult.innerHTML = '';
+
+    // Clear email/OTP state
+    verifiedEmail = null;
+    emailInput.readOnly = false;
+    emailInput.value = '';
+    lastOtpEmail = '';
+    lastOtpSentAt = 0;
+    lastOtpNoticeAt = 0;
+    if (otpDebounceId) { clearTimeout(otpDebounceId); otpDebounceId = null; }
+    emailVerificationStatus.innerHTML = '';
+    const hiddenEmail = document.getElementById('hiddenVerifiedEmail');
+    if (hiddenEmail && hiddenEmail.parentNode) hiddenEmail.parentNode.removeChild(hiddenEmail);
+    const hiddenFace = document.getElementById('hiddenFaceVerified');
+    if (hiddenFace && hiddenFace.parentNode) hiddenFace.parentNode.removeChild(hiddenFace);
+
+    const otpInput = document.getElementById('otpInput');
+    const otpErrorMsg = document.getElementById('otpErrorMsg');
+    if (otpInput) { otpInput.value = ''; otpInput.disabled = false; }
+    if (otpErrorMsg) otpErrorMsg.innerHTML = '';
+
+    // Clear ID crop state
+    idCropDataUrl = null;
+    idCropImage = null;
+    idCropRect = null;
+    idCropDragging = false;
+    idCropStart = null;
+    idCropScale = 1;
+    idCropReady = false;
+    if (idCropCtx && idCropCanvas) {
+        idCropCtx.clearRect(0, 0, idCropCanvas.width, idCropCanvas.height);
+    }
+
+    // Clear field-specific errors and notes
+    if (idFile) {
+        idFile.value = '';
+        idFile.classList.remove('is-invalid');
+        idFile.dataset.qualityOk = '0';
+    }
+    if (fileError) fileError.classList.add('d-none');
+    if (fileNote) fileNote.classList.add('d-none');
+    if (idNumber) idNumber.classList.remove('is-invalid');
+    if (idError) idError.classList.add('d-none');
+    if (passwordError) passwordError.classList.add('d-none');
+    if (confirmPasswordError) confirmPasswordError.classList.add('d-none');
+    if (addressField) addressField.value = '';
+
+    // Return to Step 1 and reset step UI
+    step2.classList.add('d-none');
+    step1.classList.remove('d-none');
+    stepTabs[1].classList.add('disabled');
+    stepTabs[1].classList.remove('active');
+    stepTabs[0].classList.add('active');
+
+    cleanupModalBackdrops();
+}
+
+function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+const candidates = [
+    'auth/api/send-otp.php',
+    '/THESIS/LYINGIN/auth/api/send-otp.php',
+    '/THESIS/LYINGIN/auth/api/send-otp.php'
+];
+
+async function tryPostCandidates(candidateUrls, body) {
+    let lastError = null;
+    for (const url of candidateUrls) {
+        try {
+            console.log('Attempting OTP send to:', url);
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body
+            });
+            const text = await resp.text();
+            // If server returned HTML (404 page etc.) JSON.parse will throw and we'll treat it as failure
+            let data = null;
+            try { data = JSON.parse(text); } catch (e) { throw { url, status: resp.status, raw: text } }
+            if (!resp.ok) throw { url, status: resp.status, data };
+            return data;
+        } catch (err) {
+            console.warn('OTP attempt failed for', url, err);
+            lastError = err;
+        }
+    }
+    throw lastError || new Error('All candidate endpoints failed');
+}
+
+async function sendOtpForEmail(email, opts = {}) {
+    if (otpSendInProgress) return;
+    if (!isValidEmail(email)) {
+        showOtpModalMessage('Please enter a valid email address', 'danger');
         return;
     }
-    
-    // Send OTP (try multiple candidate paths to handle differing server base paths)
-    verifyEmailBtn.disabled = true;
-    verifyEmailBtn.textContent = 'Sending OTP...';
+    if (verifiedEmail && verifiedEmail === email) return;
 
-    const candidates = [
-        'auth/api/send-otp.php',
-        '/THESIS/LYINGIN/auth/api/send-otp.php',
-        '/THESIS/LYINGIN/auth/api/send-otp.php'
-    ];
-
-    async function tryPostCandidates(candidateUrls, body) {
-        let lastError = null;
-        for (const url of candidateUrls) {
-            try {
-                console.log('Attempting OTP send to:', url);
-                const resp = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body
-                });
-                const text = await resp.text();
-                // If server returned HTML (404 page etc.) JSON.parse will throw and we'll treat it as failure
-                let data = null;
-                try { data = JSON.parse(text); } catch (e) { throw { url, status: resp.status, raw: text } }
-                if (!resp.ok) throw { url, status: resp.status, data };
-                return data;
-            } catch (err) {
-                console.warn('OTP attempt failed for', url, err);
-                lastError = err;
-            }
+    const now = Date.now();
+    if (!opts.force && lastOtpEmail === email && (now - lastOtpSentAt) < OTP_RESEND_COOLDOWN_MS) {
+        if ((now - lastOtpNoticeAt) > OTP_RESEND_COOLDOWN_MS) {
+            showOtpModalMessage('OTP already sent. Please check your email.', 'info');
+            lastOtpNoticeAt = now;
         }
-        throw lastError || new Error('All candidate endpoints failed');
+        showOTPModal(email);
+        return;
     }
+
+    otpSendInProgress = true;
+    lastOtpEmail = email;
+
+    if (verifyEmailBtn) {
+        verifyEmailBtn.disabled = true;
+        verifyEmailBtn.textContent = 'Sending OTP...';
+    }
+    showOtpModalMessage('Sending OTP...', 'info');
 
     try {
         const data = await tryPostCandidates(candidates, 'email=' + encodeURIComponent(email) + '&user_type=patient');
         if (data.status === 'success') {
-            showEmailStatus('OTP sent! Check your email.', 'success');
+            lastOtpSentAt = Date.now();
             showOTPModal(email);
+            showOtpModalMessage('OTP sent! Check your email.', 'success', false);
         } else {
-            showEmailStatus(data.message || 'Failed to send OTP', 'danger');
-            verifyEmailBtn.disabled = false;
-            verifyEmailBtn.textContent = 'Verify';
+            showOtpModalMessage(data.message || 'Failed to send OTP', 'danger');
         }
     } catch (error) {
         console.error('Error sending OTP (all candidates failed):', error);
         // If the server sent back raw HTML for a 404, include a helpful message
         if (error && error.raw) console.log('Server response (raw):', error.raw);
-        showEmailStatus('Error sending OTP. Server endpoint not found or returned an error. Check console.', 'danger');
-        verifyEmailBtn.disabled = false;
-        verifyEmailBtn.textContent = 'Verify';
+        showOtpModalMessage('Error sending OTP. Server endpoint not found or returned an error. Check console.', 'danger');
+    } finally {
+        otpSendInProgress = false;
+        if (verifyEmailBtn) {
+            verifyEmailBtn.disabled = false;
+            verifyEmailBtn.textContent = 'Verify';
+        }
+    }
+}
+
+function scheduleOtpSend() {
+    const email = emailInput.value.trim();
+    if (!email) {
+        emailVerificationStatus.innerHTML = '';
+        return;
+    }
+    if (verifiedEmail && verifiedEmail === email) return;
+
+    if (otpDebounceId) {
+        clearTimeout(otpDebounceId);
+    }
+    otpDebounceId = setTimeout(() => {
+        const currentEmail = emailInput.value.trim();
+        if (currentEmail === email) {
+            sendOtpForEmail(currentEmail);
+        }
+    }, 700);
+}
+
+emailInput.addEventListener('input', scheduleOtpSend);
+emailInput.addEventListener('blur', () => {
+    const email = emailInput.value.trim();
+    if (email) {
+        sendOtpForEmail(email);
     }
 });
 
 function showEmailStatus(message, type) {
-    emailVerificationStatus.innerHTML = `<div class="alert alert-${type} mb-0 small">${message}</div>`;
+    showOtpModalMessage(message, type);
+    emailVerificationStatus.innerHTML = '';
 }
 
 function showOTPModal(email) {
-    const otpModal = new bootstrap.Modal(document.getElementById('otpVerificationModal'));
+    const otpModalEl = document.getElementById('otpVerificationModal');
+    const otpModal = bootstrap.Modal.getOrCreateInstance(otpModalEl);
     
     const otpForm = document.getElementById('otpForm');
     const otpInput = document.getElementById('otpInput');
-    const submitOtpBtn = document.getElementById('submitOtpBtn');
     const otpErrorMsg = document.getElementById('otpErrorMsg');
+    const resendOtpBtn = document.getElementById('resendOtpBtn');
+    let otpVerifying = false;
     
     otpInput.value = '';
     otpErrorMsg.innerHTML = '';
-    submitOtpBtn.disabled = false;
-    submitOtpBtn.textContent = 'Verify OTP';
+    otpInput.disabled = false;
     
-    submitOtpBtn.onclick = async function() {
+    const verifyOtp = async () => {
         const otp = otpInput.value.trim();
         
         if (!otp || otp.length !== 6) {
@@ -1257,8 +1731,9 @@ function showOTPModal(email) {
             return;
         }
         
-        submitOtpBtn.disabled = true;
-        submitOtpBtn.textContent = 'Verifying...';
+        if (otpVerifying) return;
+        otpVerifying = true;
+        otpInput.disabled = true;
         
         try {
             const candidates = [
@@ -1303,30 +1778,41 @@ function showOTPModal(email) {
                 }
                 hiddenEmail.value = email;
 
-                verifyEmailBtn.disabled = true;
-                verifyEmailBtn.classList.add('btn-success');
-                verifyEmailBtn.classList.remove('btn-outline-primary');
-                verifyEmailBtn.textContent = '✓ Verified';
-                
-                showEmailStatus('Email verified successfully!', 'success');
-                otpModal.hide();
+                showOtpModalMessage('Email verified successfully!', 'success', false);
+                setTimeout(() => { try { otpModal.hide(); } catch (e) {} }, 600);
                 
                 // Re-run validation to enable Next when all fields are valid
                 validateStep1Fields();
             } else {
                 otpErrorMsg.innerHTML = '<div class="alert alert-danger mb-0 small">' + (data.message || 'Invalid OTP') + '</div>';
-                submitOtpBtn.disabled = false;
-                submitOtpBtn.textContent = 'Verify OTP';
+                otpInput.disabled = false;
             }
         } catch (error) {
             console.error('Error:', error);
             otpErrorMsg.innerHTML = '<div class="alert alert-danger mb-0 small">Error verifying OTP. Please try again.</div>';
-            submitOtpBtn.disabled = false;
-            submitOtpBtn.textContent = 'Verify OTP';
+            otpInput.disabled = false;
+        } finally {
+            otpVerifying = false;
         }
     };
+
+    otpInput.oninput = () => {
+        const otp = otpInput.value.trim();
+        if (otp.length === 6 && !otpVerifying) {
+            verifyOtp();
+        }
+    };
+
+    if (resendOtpBtn) {
+        resendOtpBtn.onclick = () => {
+            sendOtpForEmail(email, { force: true });
+        };
+    }
     
     otpModal.show();
+    if (otpModalEl) {
+        otpModalEl.addEventListener('hidden.bs.modal', cleanupModalBackdrops, { once: true });
+    }
 }
 
 // Block form submission if email not verified OR face not verified

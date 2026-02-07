@@ -6,6 +6,30 @@
 
 header('Content-Type: application/json');
 
+// Load .env configuration
+$envFile = null;
+$candidates = [
+    realpath(__DIR__ . '/..') . DIRECTORY_SEPARATOR . '.env',      // auth/.env
+    realpath(__DIR__ . '/../../') . DIRECTORY_SEPARATOR . '.env',   // project root /.env
+    __DIR__ . DIRECTORY_SEPARATOR . '.env'                         // auth/api/.env
+];
+foreach ($candidates as $cand) {
+    if ($cand && file_exists($cand)) { $envFile = $cand; break; }
+}
+if ($envFile) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos(trim($line), '#') === 0) continue;
+        if (!strpos($line, '=')) continue;
+        list($key, $val) = explode('=', $line, 2);
+        $key = trim($key);
+        $val = trim($val);
+        $val = trim($val, "'\"");
+        putenv("$key=$val");
+        $_ENV[$key] = $val;
+    }
+}
+
 // Database configuration
 $servername = "localhost";
 $db_username = "root";
@@ -61,9 +85,14 @@ function readSMTPResponse($socket) {
     return trim($response);
 }
 
-// Send OTP via Gmail
-function sendOTPViaGmail($gmail_sender, $gmail_password, $to_email, $otp) {
+// Send OTP via SMTP (Gmail, Mailtrap, or custom SMTP)
+function sendOTPViaSMTP($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $to_email, $otp) {
     try {
+        // Determine if SSL or TLS
+        $secure = getenv('MAIL_SMTP_SECURE') ?: 'tls';
+        $protocol = ($secure === 'ssl') ? 'ssl://' : 'tcp://';
+        $use_tls = ($secure === 'tls');
+        
         $context = stream_context_create([
             'ssl' => [
                 'verify_peer' => false,
@@ -72,9 +101,9 @@ function sendOTPViaGmail($gmail_sender, $gmail_password, $to_email, $otp) {
             ]
         ]);
         
-        $socket = @stream_socket_client('ssl://smtp.gmail.com:465', $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
+        $socket = @stream_socket_client($protocol . $smtp_host . ':' . $smtp_port, $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
         if (!$socket) {
-            error_log("SMTP Connection Error: $errstr (Code: $errno)");
+            error_log("SMTP Connection Error: $errstr (Code: $errno) - Host: $smtp_host:$smtp_port");
             return false;
         }
         
@@ -82,8 +111,22 @@ function sendOTPViaGmail($gmail_sender, $gmail_password, $to_email, $otp) {
         readSMTPResponse($socket);
         
         // Send EHLO
-        fwrite($socket, "EHLO smtp.gmail.com\r\n");
+        fwrite($socket, "EHLO smtp.example.com\r\n");
         readSMTPResponse($socket);
+        
+        // Start TLS if needed (for port 587)
+        if ($use_tls && $smtp_port == 587) {
+            fwrite($socket, "STARTTLS\r\n");
+            $response = readSMTPResponse($socket);
+            if (strpos($response, '220') === false) {
+                error_log("STARTTLS failed: $response");
+                fclose($socket);
+                return false;
+            }
+            stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+            fwrite($socket, "EHLO smtp.example.com\r\n");
+            readSMTPResponse($socket);
+        }
         
         // Send AUTH LOGIN
         fwrite($socket, "AUTH LOGIN\r\n");
@@ -96,8 +139,9 @@ function sendOTPViaGmail($gmail_sender, $gmail_password, $to_email, $otp) {
         }
         
         // Send username (base64 encoded)
-        fwrite($socket, base64_encode($gmail_sender) . "\r\n");
+        fwrite($socket, base64_encode($smtp_user) . "\r\n");
         $response = readSMTPResponse($socket);
+
         
         if (strpos($response, '334') === false) {
             error_log("SMTP username prompt error: $response");
@@ -106,7 +150,7 @@ function sendOTPViaGmail($gmail_sender, $gmail_password, $to_email, $otp) {
         }
         
         // Send password (base64 encoded)
-        fwrite($socket, base64_encode($gmail_password) . "\r\n");
+        fwrite($socket, base64_encode($smtp_pass) . "\r\n");
         $response = readSMTPResponse($socket);
         
         // Check if auth was successful
@@ -117,7 +161,7 @@ function sendOTPViaGmail($gmail_sender, $gmail_password, $to_email, $otp) {
         }
         
         // Send MAIL FROM
-        fwrite($socket, "MAIL FROM:<" . $gmail_sender . ">\r\n");
+        fwrite($socket, "MAIL FROM:<" . $smtp_user . ">\r\n");
         readSMTPResponse($socket);
         
         // Send RCPT TO
@@ -129,7 +173,7 @@ function sendOTPViaGmail($gmail_sender, $gmail_password, $to_email, $otp) {
         readSMTPResponse($socket);
         
         // Prepare email message
-        $message = "From: LYINGIN Healthcare <" . $gmail_sender . ">\r\n";
+        $message = "From: LYINGIN Healthcare <" . $smtp_user . ">\r\n";
         $message .= "To: " . $to_email . "\r\n";
         $message .= "Subject: Email Verification - OTP Code\r\n";
         $message .= "MIME-Version: 1.0\r\n";
@@ -190,12 +234,23 @@ function sendOTPViaGmail($gmail_sender, $gmail_password, $to_email, $otp) {
     }
 }
 
-// Gmail credentials
-$gmail_sender = "tandicoalessandranicole@gmail.com";
-$gmail_password = "zbjs naxg scid wzzi";
+// Get SMTP credentials from .env
+$smtp_host = getenv('MAIL_SMTP_HOST') ?: 'smtp.gmail.com';
+$smtp_port = getenv('MAIL_SMTP_PORT') ?: 587;
+$smtp_user = getenv('MAIL_USERNAME') ?: '';
+$smtp_pass = getenv('MAIL_PASSWORD') ?: '';
+
+if (!$smtp_user || !$smtp_pass) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Email service not configured. Please contact support."
+    ]);
+    $conn->close();
+    exit;
+}
 
 // Send OTP
-if (sendOTPViaGmail($gmail_sender, $gmail_password, $email, $otp)) {
+if (sendOTPViaSMTP($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $email, $otp)) {
     echo json_encode([
         "status" => "success",
         "message" => "OTP sent to your email. Valid for 10 minutes.",
