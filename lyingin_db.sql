@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 05, 2026 at 03:24 PM
+-- Generation Time: Feb 09, 2026 at 08:29 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -127,6 +127,13 @@ CREATE TABLE `notifications` (
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `notifications`
+--
+
+INSERT INTO `notifications` (`id`, `user_id`, `message`, `is_read`, `created_at`) VALUES
+(2, 1, 'Your next checkup is tomorrow at 9:00 AM.', 0, '2026-02-09 14:33:42');
+
 -- --------------------------------------------------------
 
 --
@@ -139,6 +146,27 @@ CREATE TABLE `otp_tokens` (
   `expires_at` datetime NOT NULL,
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `password_resets`
+--
+
+CREATE TABLE `password_resets` (
+  `id` int(11) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `token_hash` varchar(255) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `password_resets`
+--
+
+INSERT INTO `password_resets` (`id`, `email`, `token_hash`, `expires_at`, `created_at`) VALUES
+(5, 'tavoce6806@hopesx.com', '78b973a2c96fc1851fdcc58dd92cabb52fc58ea2ddcc9a64f6a6eae46194b7ee', '2026-02-09 13:29:16', '2026-02-09 12:59:16');
 
 -- --------------------------------------------------------
 
@@ -196,6 +224,110 @@ INSERT INTO `patients` (`id`, `email`, `password_hash`, `first_name`, `middle_na
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `patient_appointments`
+--
+
+CREATE TABLE `patient_appointments` (
+  `id` int(11) NOT NULL,
+  `patient_id` int(11) NOT NULL,
+  `clinic_name` varchar(255) NOT NULL,
+  `service` varchar(100) NOT NULL,
+  `appointment_date` date NOT NULL,
+  `appointment_time` time NOT NULL,
+  `status` enum('pending','confirmed','cancelled','completed') NOT NULL DEFAULT 'pending',
+  `notes` text DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `patient_messages`
+--
+
+CREATE TABLE `patient_messages` (
+  `id` int(11) NOT NULL,
+  `patient_id` int(11) NOT NULL,
+  `sender_name` varchar(255) NOT NULL,
+  `subject` varchar(255) DEFAULT NULL,
+  `body` text DEFAULT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `patient_messages`
+--
+
+INSERT INTO `patient_messages` (`id`, `patient_id`, `sender_name`, `subject`, `body`, `is_read`, `created_at`) VALUES
+(1, 1, 'Clinic Staff', 'Appointment Update', 'Your appointment is confirmed.', 0, '2026-02-09 14:33:42');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `patient_pregnancy_tracker`
+--
+
+CREATE TABLE `patient_pregnancy_tracker` (
+  `patient_id` int(11) NOT NULL,
+  `lmp_date` date NOT NULL,
+  `edd_date` date DEFAULT NULL,
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `patient_records`
+--
+
+CREATE TABLE `patient_records` (
+  `id` int(11) NOT NULL,
+  `patient_id` int(11) NOT NULL,
+  `record_type` varchar(100) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `record_date` date NOT NULL,
+  `record_time` time DEFAULT NULL,
+  `status` enum('pending','completed','cancelled','no_show') NOT NULL DEFAULT 'completed',
+  `remarks` text DEFAULT NULL,
+  `file_path` varchar(255) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pregnancy_weekly_tips`
+--
+
+CREATE TABLE `pregnancy_weekly_tips` (
+  `id` int(11) NOT NULL,
+  `week_number` int(11) NOT NULL,
+  `baby_development` text NOT NULL,
+  `mother_condition` text NOT NULL,
+  `reminders` text NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `prenatal_checkups`
+--
+
+CREATE TABLE `prenatal_checkups` (
+  `id` int(11) NOT NULL,
+  `patient_id` int(11) NOT NULL,
+  `checkup_date` date NOT NULL,
+  `gestation_week` int(11) NOT NULL,
+  `weight_kg` decimal(5,2) DEFAULT NULL,
+  `blood_pressure` varchar(20) DEFAULT NULL,
+  `remarks` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `regpatient`
 --
 
@@ -216,16 +348,17 @@ CREATE TABLE `regpatient` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `email_verified` tinyint(1) DEFAULT 0,
   `face_verified` tinyint(1) DEFAULT 0,
-  `email_verification_token` varchar(255) DEFAULT NULL,
-  `email_verification_expires` datetime DEFAULT NULL
+  `profile_image` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `regpatient`
 --
 
-INSERT INTO `regpatient` (`id`, `first_name`, `last_name`, `birthdate`, `gender`, `email`, `contact_no`, `address`, `username`, `password`, `id_type`, `id_number`, `id_file`, `created_at`, `email_verified`, `face_verified`, `email_verification_token`, `email_verification_expires`) VALUES
-(8, 'Alessandra Nicole', 'De Guzman', '2005-01-22', 'female', 'sewojef687@cimario.com', '0965237923', 'Imus, 4103, Philippines', 'sewojef687', '$2y$10$4SgW74UBwQYka4Rwf1e8E.3x.mn1vr1VUPn.6WglKT.5shP0/xpwW', 'national', '5921430936295184', 'C:\\xampp\\htdocs\\THESIS\\LYINGIN\\auth\\api/../../uploads/patients/id_69821a5e5fe280.73388090_sandra.jpg', '2026-02-03 15:55:10', 0, 1, '166f9159dd1e9ee2fb47c43703c951d23e9ec3410cef62e33e143ad66bf30805', '2026-02-04 16:55:10');
+INSERT INTO `regpatient` (`id`, `first_name`, `last_name`, `birthdate`, `gender`, `email`, `contact_no`, `address`, `username`, `password`, `id_type`, `id_number`, `id_file`, `created_at`, `email_verified`, `face_verified`, `profile_image`) VALUES
+(1, 'Alessandra', 'Nciol', '2005-01-22', 'female', 'tavoce6806@hopesx.com', '09652379023', '9 Leonforte Street, Imus, 4103, Philippines', 'tavoce6806', '$2y$10$iYdmgcarRsaqkEV3HNPTpuvRT3uzewttU6siDnMzxWpkJiHuG0w5W', 'national', '5921430936295184', 'C:\\xampp\\htdocs\\thesis\\LYINGIN\\auth\\api/../../uploads/patients/id_69880695d6dd77.18065218_ntionl.jpg', '2026-02-08 03:44:21', 1, 1, 'uploads/patients/sample-profile.jpg'),
+(2, 'Alessandra', 'Nicole', '2005-01-22', 'female', 'sedeg61473@helesco.com', '09652379023', '28 Lanciano Street, Imus, 4103, Philippines', 'sedeg61473', '$2y$10$ddSzNSsykKUUhdm/lgx0nuyCFPrsSc3At8tQPHjrwZf5e5a/DIDQ.', 'national', '5921430936295184', 'C:\\xampp\\htdocs\\thesis\\LYINGIN\\auth\\api/../../uploads/patients/id_69880f21a8d033.11873138_ntionl.jpg', '2026-02-08 04:20:49', 1, 1, NULL),
+(3, 'Alessandra', 'Nicole', '2005-01-22', 'female', 'modiya5932@codgal.com', '09652379023', 'Central Market Avenue, Dasmariñas, 4114, Philippines', 'modiya5932', '$2y$10$KbuH43XFSsA0YMrjUkyrVuKWysdnb8PmPBWZW6lnunpzHPP7R7QTe', 'national', '5921430936295184', 'C:\\xampp\\htdocs\\thesis\\LYINGIN\\auth\\api/../../uploads/patients/id_6989774c9177c0.85687341_ntionl.jpg', '2026-02-09 05:57:32', 1, 1, 'uploads/patients/30e9a542079217e5cb4dcd0c358986f0_1770619611.jpg');
 
 --
 -- Indexes for dumped tables
@@ -258,6 +391,14 @@ ALTER TABLE `otp_tokens`
   ADD PRIMARY KEY (`email`);
 
 --
+-- Indexes for table `password_resets`
+--
+ALTER TABLE `password_resets`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_password_resets_token` (`token_hash`),
+  ADD KEY `idx_password_resets_email` (`email`);
+
+--
 -- Indexes for table `patients`
 --
 ALTER TABLE `patients`
@@ -265,11 +406,54 @@ ALTER TABLE `patients`
   ADD UNIQUE KEY `email` (`email`);
 
 --
+-- Indexes for table `patient_appointments`
+--
+ALTER TABLE `patient_appointments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_patient_appointments_patient` (`patient_id`),
+  ADD KEY `idx_patient_appointments_date` (`appointment_date`);
+
+--
+-- Indexes for table `patient_messages`
+--
+ALTER TABLE `patient_messages`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_patient_messages_patient` (`patient_id`);
+
+--
+-- Indexes for table `patient_pregnancy_tracker`
+--
+ALTER TABLE `patient_pregnancy_tracker`
+  ADD PRIMARY KEY (`patient_id`);
+
+--
+-- Indexes for table `patient_records`
+--
+ALTER TABLE `patient_records`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_patient_records_patient` (`patient_id`),
+  ADD KEY `idx_patient_records_date` (`record_date`);
+
+--
+-- Indexes for table `pregnancy_weekly_tips`
+--
+ALTER TABLE `pregnancy_weekly_tips`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_week` (`week_number`);
+
+--
+-- Indexes for table `prenatal_checkups`
+--
+ALTER TABLE `prenatal_checkups`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_prenatal_patient` (`patient_id`),
+  ADD KEY `idx_prenatal_date` (`checkup_date`);
+
+--
 -- Indexes for table `regpatient`
 --
 ALTER TABLE `regpatient`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email_verification_token` (`email_verification_token`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -291,7 +475,13 @@ ALTER TABLE `clinics`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `password_resets`
+--
+ALTER TABLE `password_resets`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `patients`
@@ -300,10 +490,40 @@ ALTER TABLE `patients`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
+-- AUTO_INCREMENT for table `patient_appointments`
+--
+ALTER TABLE `patient_appointments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `patient_messages`
+--
+ALTER TABLE `patient_messages`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `patient_records`
+--
+ALTER TABLE `patient_records`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `pregnancy_weekly_tips`
+--
+ALTER TABLE `pregnancy_weekly_tips`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `prenatal_checkups`
+--
+ALTER TABLE `prenatal_checkups`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `regpatient`
 --
 ALTER TABLE `regpatient`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables
@@ -314,6 +534,30 @@ ALTER TABLE `regpatient`
 --
 ALTER TABLE `notifications`
   ADD CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `patients` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `patient_appointments`
+--
+ALTER TABLE `patient_appointments`
+  ADD CONSTRAINT `fk_patient_appointments_patient` FOREIGN KEY (`patient_id`) REFERENCES `regpatient` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `patient_pregnancy_tracker`
+--
+ALTER TABLE `patient_pregnancy_tracker`
+  ADD CONSTRAINT `fk_patient_tracker_patient` FOREIGN KEY (`patient_id`) REFERENCES `regpatient` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `patient_records`
+--
+ALTER TABLE `patient_records`
+  ADD CONSTRAINT `fk_patient_records_patient` FOREIGN KEY (`patient_id`) REFERENCES `regpatient` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `prenatal_checkups`
+--
+ALTER TABLE `prenatal_checkups`
+  ADD CONSTRAINT `fk_prenatal_patient` FOREIGN KEY (`patient_id`) REFERENCES `regpatient` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

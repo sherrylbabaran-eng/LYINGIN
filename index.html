@@ -393,7 +393,7 @@ Developed with the needs of local lying-in clinics in mind, the Lying-In Platfor
         <!-- Modal Footer (optional) -->
         <div class="modal-footer border-0 justify-content-start flex-column align-items-start">
           <small class="text-muted">
-              <a href="#">Forgot your password?</a>
+              <a href="#" id="forgotPasswordLink">Forgot your password?</a>
           </small>
         </div>
         <div class="modal-footer border-0 justify-content-start flex-column align-items-start">
@@ -406,15 +406,88 @@ Developed with the needs of local lying-in clinics in mind, the Lying-In Platfor
     </div>
   </div>
 
+  <!-- Forgot Password Modal -->
+  <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="forgotPasswordLabel">Reset Password</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted">Enter your email address. If your account exists, we will send a reset link.</p>
+          <form id="forgotPasswordForm">
+            <input type="hidden" name="csrf_token" id="forgotCsrfToken">
+            <div class="mb-3">
+              <label for="forgotEmail" class="form-label">Email address</label>
+              <input type="email" class="form-control" name="email" id="forgotEmail" placeholder="Enter email" required>
+            </div>
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary" id="forgotSubmitBtn">Send Reset Link</button>
+            </div>
+            <div id="forgotError" class="alert alert-danger d-none mt-3" role="alert"></div>
+            <div id="forgotSuccess" class="alert alert-success d-none mt-3" role="alert"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Load CSRF token on modal open
     document.getElementById('loginModal').addEventListener('show.bs.modal', function() {
-      fetch('/THESIS/LYINGIN/auth/api/get-csrf-token.php')
+      fetch('auth/api/get-csrf-token.php')
         .then(response => response.json())
         .then(data => {
           document.getElementById('csrfToken').value = data.token;
         })
         .catch(error => console.error('Error loading CSRF token:', error));
+    });
+
+    document.getElementById('forgotPasswordModal').addEventListener('show.bs.modal', function() {
+      fetch('auth/api/get-csrf-token.php')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('forgotCsrfToken').value = data.token;
+        })
+        .catch(error => console.error('Error loading CSRF token:', error));
+    });
+
+    function cleanupModalState() {
+      const anyOpen = document.querySelector('.modal.show');
+      if (!anyOpen) {
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+      }
+    }
+
+    document.getElementById('loginModal').addEventListener('hidden.bs.modal', cleanupModalState);
+    document.getElementById('forgotPasswordModal').addEventListener('hidden.bs.modal', cleanupModalState);
+
+    document.getElementById('forgotPasswordLink').addEventListener('click', function(e) {
+      e.preventDefault();
+      const loginEl = document.getElementById('loginModal');
+      const forgotEl = document.getElementById('forgotPasswordModal');
+
+      if (!forgotEl) return;
+
+      const showForgot = () => {
+        const forgotModal = bootstrap.Modal.getInstance(forgotEl) || bootstrap.Modal.getOrCreateInstance(forgotEl);
+        forgotModal.show();
+      };
+
+      if (loginEl) {
+        const loginModal = bootstrap.Modal.getInstance(loginEl) || bootstrap.Modal.getOrCreateInstance(loginEl);
+        if (loginEl.classList.contains('show')) {
+          loginEl.addEventListener('hidden.bs.modal', showForgot, { once: true });
+          loginModal.hide();
+          return;
+        }
+      }
+
+      showForgot();
     });
 
     // Handle login form submission
@@ -427,17 +500,29 @@ Developed with the needs of local lying-in clinics in mind, the Lying-In Platfor
 
       const formData = new FormData(this);
       
-      fetch('/THESIS/LYINGIN/auth/api/login.php', {
+      fetch('auth/api/login.php', {
         method: 'POST',
         body: formData
       })
-      .then(response => response.json())
+      .then(async response => {
+        const text = await response.text();
+        try {
+          const data = JSON.parse(text);
+          if (!response.ok) {
+            const message = data.message || ('HTTP ' + response.status);
+            throw new Error(message);
+          }
+          return data;
+        } catch (err) {
+          throw new Error(text || 'Invalid server response');
+        }
+      })
       .then(data => {
-        if (data.success) {
-          successDiv.textContent = 'Login successful! Redirecting...';
+        if (data.status === 'success') {
+          successDiv.textContent = data.message || 'Login successful! Redirecting...';
           successDiv.classList.remove('d-none');
           setTimeout(() => {
-            window.location.href = data.redirect;
+            window.location.href = data.redirect || 'index.html';
           }, 1500);
         } else {
           errorDiv.textContent = data.message || 'Login failed. Please try again.';
@@ -446,9 +531,73 @@ Developed with the needs of local lying-in clinics in mind, the Lying-In Platfor
       })
       .catch(error => {
         console.error('Error:', error);
-        errorDiv.textContent = 'An error occurred. Please try again.';
+        errorDiv.textContent = (error && error.message) ? error.message : 'An error occurred. Please try again.';
         errorDiv.classList.remove('d-none');
       });
+    });
+
+    // Handle forgot password submission
+    document.getElementById('forgotPasswordForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const errorDiv = document.getElementById('forgotError');
+      const successDiv = document.getElementById('forgotSuccess');
+      const submitBtn = document.getElementById('forgotSubmitBtn');
+      errorDiv.classList.add('d-none');
+      successDiv.classList.add('d-none');
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+
+      const formData = new FormData(this);
+
+      fetch('auth/api/request-password-reset.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(async response => {
+        const text = await response.text();
+        try {
+          const data = JSON.parse(text);
+          if (!response.ok) {
+            const message = data.message || ('HTTP ' + response.status);
+            throw new Error(message);
+          }
+          return data;
+        } catch (err) {
+          throw new Error(text || 'Invalid server response');
+        }
+      })
+      .then(data => {
+        if (data.status === 'success') {
+          successDiv.textContent = data.message || 'If your account exists, a reset link has been sent.';
+          successDiv.classList.remove('d-none');
+          this.reset();
+        } else {
+          errorDiv.textContent = data.message || 'Request failed. Please try again.';
+          errorDiv.classList.remove('d-none');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        errorDiv.textContent = (error && error.message) ? error.message : 'An error occurred. Please try again.';
+        errorDiv.classList.remove('d-none');
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Reset Link';
+      });
+    });
+
+    // Auto-open login modal when redirected after registration
+    document.addEventListener('DOMContentLoaded', function() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('showLogin') === '1') {
+        const modalEl = document.getElementById('loginModal');
+        if (modalEl) {
+          const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+          modal.show();
+        }
+      }
     });
   </script>
 

@@ -357,6 +357,26 @@
     </div>
 </div>
 
+<!-- POST-REGISTRATION CHOICE MODAL -->
+<div class="modal fade" id="postRegisterModal" tabindex="-1" aria-labelledby="postRegisterLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="postRegisterLabel">Registration Complete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="postRegisterMessage" class="mb-2">Your account has been created.</p>
+                <p class="text-muted mb-0">Would you like to proceed to login or register another account?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="registerAnotherBtn">Register Another</button>
+                <button type="button" class="btn btn-primary" id="proceedLoginBtn">Go to Login</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -951,6 +971,35 @@ idFile.addEventListener('change', () => {
 
 // --- Form submission with fetch ---
 const patientForm = document.getElementById('patientForm');
+const postRegisterModalEl = document.getElementById('postRegisterModal');
+const postRegisterMessage = document.getElementById('postRegisterMessage');
+const proceedLoginBtn = document.getElementById('proceedLoginBtn');
+const registerAnotherBtn = document.getElementById('registerAnotherBtn');
+
+function showPostRegisterModal(message) {
+    if (postRegisterMessage) {
+        postRegisterMessage.textContent = message || 'Your account has been created.';
+    }
+    if (!postRegisterModalEl) return;
+    const modal = bootstrap.Modal.getOrCreateInstance(postRegisterModalEl);
+    modal.show();
+}
+
+if (proceedLoginBtn) {
+    proceedLoginBtn.addEventListener('click', () => {
+        window.location.href = 'index.html?showLogin=1';
+    });
+}
+
+if (registerAnotherBtn) {
+    registerAnotherBtn.addEventListener('click', () => {
+        resetRegistrationFormState();
+        if (postRegisterModalEl) {
+            const modal = bootstrap.Modal.getInstance(postRegisterModalEl) || bootstrap.Modal.getOrCreateInstance(postRegisterModalEl);
+            modal.hide();
+        }
+    });
+}
 
 patientForm.addEventListener('submit', e => {
     e.preventDefault();
@@ -1004,9 +1053,10 @@ patientForm.addEventListener('submit', e => {
         }
     })
     .then(data => {
-        alert(data.message);
         if (data.status === 'success') {
-            resetRegistrationFormState();
+            showPostRegisterModal(data.message || 'Registration successful.');
+        } else {
+            alert(data.message || 'Registration failed. Please try again.');
         }
     })
     .catch(err => {

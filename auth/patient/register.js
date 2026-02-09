@@ -310,6 +310,48 @@ idFile.addEventListener('change', () => {
 
 // --- Form submission with fetch ---
 const patientForm = document.getElementById('patientForm');
+const postRegisterModalEl = document.getElementById('postRegisterModal');
+const postRegisterMessage = document.getElementById('postRegisterMessage');
+const proceedLoginBtn = document.getElementById('proceedLoginBtn');
+const registerAnotherBtn = document.getElementById('registerAnotherBtn');
+
+function showPostRegisterModal(message) {
+    if (postRegisterMessage) {
+        postRegisterMessage.textContent = message || 'Your account has been created.';
+    }
+    if (!postRegisterModalEl) return;
+    const modal = bootstrap.Modal.getOrCreateInstance(postRegisterModalEl);
+    modal.show();
+}
+
+function resetRegistrationFormState() {
+    if (patientForm) patientForm.reset();
+    window.faceVerificationComplete = false;
+    updateFaceVerificationUI();
+
+    // Return to Step 1
+    step2.classList.add('d-none');
+    step1.classList.remove('d-none');
+    stepTabs[1].classList.add('disabled');
+    stepTabs[1].classList.remove('active');
+    stepTabs[0].classList.add('active');
+}
+
+if (proceedLoginBtn) {
+    proceedLoginBtn.addEventListener('click', () => {
+        window.location.href = '/THESIS/LYINGIN/index.html?showLogin=1';
+    });
+}
+
+if (registerAnotherBtn) {
+    registerAnotherBtn.addEventListener('click', () => {
+        resetRegistrationFormState();
+        if (postRegisterModalEl) {
+            const modal = bootstrap.Modal.getInstance(postRegisterModalEl) || bootstrap.Modal.getOrCreateInstance(postRegisterModalEl);
+            modal.hide();
+        }
+    });
+}
 
 patientForm.addEventListener('submit', e => {
     e.preventDefault();
@@ -344,17 +386,10 @@ patientForm.addEventListener('submit', e => {
         }
     })
     .then(data => {
-        alert(data.message);
         if (data.status === 'success') {
-            patientForm.reset();
-            window.faceVerificationComplete = false;
-            updateFaceVerificationUI();
-            // Return to Step 1
-            step2.classList.add('d-none');
-            step1.classList.remove('d-none');
-            stepTabs[1].classList.add('disabled');
-            stepTabs[1].classList.remove('active');
-            stepTabs[0].classList.add('active');
+            showPostRegisterModal(data.message || 'Registration successful.');
+        } else {
+            alert(data.message || 'Registration failed. Please try again.');
         }
     })
     .catch(err => {

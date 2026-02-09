@@ -9,6 +9,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Super Admin Lying-in</title>
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <!-- plugins:css -->
     <link rel="stylesheet" href="assets/vendors/mdi/css/materialdesignicons.min.css">
     <link rel="stylesheet" href="assets/vendors/ti-icons/css/themify-icons.css">
@@ -26,7 +29,7 @@
     <!-- End layout styles -->
     <link rel="shortcut icon" href="assets/images/favicon.png" />
   </head>
-  <body>
+  <body data-require-auth>
     <div class="container-scroller">
       </div>
       <!-- partial:partials/_navbar.html -->
@@ -53,107 +56,44 @@
             <li class="nav-item nav-profile dropdown">
               <a class="nav-link dropdown-toggle" id="profileDropdown" href="#" data-bs-toggle="dropdown" aria-expanded="false">
                 <div class="nav-profile-img">
-                  <img src="assets/images/faces/face1.jpg" alt="image">
+                  <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="image" id="patientProfileImage" data-default-src="assets/images/faces/face1.jpg">
                   <span class="availability-status online"></span>
                 </div>
                 <div class="nav-profile-text">
-                  <p class="mb-1 text-black">David Greymaax</p>
+                  <p class="mb-1 text-black" data-patient-name>Patient</p>
                 </div>
               </a>
               <div class="dropdown-menu navbar-dropdown" aria-labelledby="profileDropdown">
                 <a class="dropdown-item" href="#">
                   <i class="mdi mdi-cached me-2 text-success"></i> Activity Log </a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="#">
+                <a class="dropdown-item" href="profile.html">
+                  <i class="mdi mdi-account me-2 text-info"></i> Profile Settings </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="../auth/api/logout.php">
                   <i class="mdi mdi-logout me-2 text-primary"></i> Signout </a>
               </div>
             </li>
             <li class="nav-item dropdown">
               <a class="nav-link count-indicator dropdown-toggle" id="messageDropdown" href="#" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="mdi mdi-email-outline"></i>
-                <span class="count-symbol bg-warning"></span>
+                <span class="count-symbol bg-warning d-none" id="messageCount"></span>
               </a>
               <div class="dropdown-menu dropdown-menu-end navbar-dropdown preview-list" aria-labelledby="messageDropdown">
                 <h6 class="p-3 mb-0">Messages</h6>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item preview-item">
-                  <div class="preview-thumbnail">
-                    <img src="assets/images/faces/face4.jpg" alt="image" class="profile-pic">
-                  </div>
-                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
-                    <h6 class="preview-subject ellipsis mb-1 font-weight-normal">Mark send you a message</h6>
-                    <p class="text-gray mb-0"> 1 Minutes ago </p>
-                  </div>
-                </a>
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item preview-item">
-                  <div class="preview-thumbnail">
-                    <img src="assets/images/faces/face2.jpg" alt="image" class="profile-pic">
-                  </div>
-                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
-                    <h6 class="preview-subject ellipsis mb-1 font-weight-normal">Cregh send you a message</h6>
-                    <p class="text-gray mb-0"> 15 Minutes ago </p>
-                  </div>
-                </a>
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item preview-item">
-                  <div class="preview-thumbnail">
-                    <img src="assets/images/faces/face3.jpg" alt="image" class="profile-pic">
-                  </div>
-                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
-                    <h6 class="preview-subject ellipsis mb-1 font-weight-normal">Profile picture updated</h6>
-                    <p class="text-gray mb-0"> 18 Minutes ago </p>
-                  </div>
-                </a>
-                <div class="dropdown-divider"></div>
-                <h6 class="p-3 mb-0 text-center">4 new messages</h6>
+                <div id="messageList"></div>
               </div>
             </li>
             <li class="nav-item dropdown">
               <a class="nav-link count-indicator dropdown-toggle" id="notificationDropdown" href="#" data-bs-toggle="dropdown">
                 <i class="mdi mdi-bell-outline"></i>
-                <span class="count-symbol bg-danger"></span>
+                <span class="count-symbol bg-danger d-none" id="notificationCount"></span>
               </a>
               <div class="dropdown-menu dropdown-menu-end navbar-dropdown preview-list" aria-labelledby="notificationDropdown">
                 <h6 class="p-3 mb-0">Notifications</h6>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item preview-item">
-                  <div class="preview-thumbnail">
-                    <div class="preview-icon bg-success">
-                      <i class="mdi mdi-calendar"></i>
-                    </div>
-                  </div>
-                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
-                    <h6 class="preview-subject font-weight-normal mb-1">Event today</h6>
-                    <p class="text-gray ellipsis mb-0"> Just a reminder that you have an event today </p>
-                  </div>
-                </a>
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item preview-item">
-                  <div class="preview-thumbnail">
-                    <div class="preview-icon bg-warning">
-                      <i class="mdi mdi-cog"></i>
-                    </div>
-                  </div>
-                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
-                    <h6 class="preview-subject font-weight-normal mb-1">Settings</h6>
-                    <p class="text-gray ellipsis mb-0"> Update dashboard </p>
-                  </div>
-                </a>
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item preview-item">
-                  <div class="preview-thumbnail">
-                    <div class="preview-icon bg-info">
-                      <i class="mdi mdi-link-variant"></i>
-                    </div>
-                  </div>
-                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
-                    <h6 class="preview-subject font-weight-normal mb-1">Launch Admin</h6>
-                    <p class="text-gray ellipsis mb-0"> New admin wow! </p>
-                  </div>
-                </a>
-                <div class="dropdown-divider"></div>
-                <h6 class="p-3 mb-0 text-center">See all notifications</h6>
+                <div id="notificationList"></div>
               </div>
             </li>
           </ul>
@@ -228,66 +168,19 @@
   
   <div class="d-flex gap-2">
     <!-- Date Picker -->
-    <input type="date" class="form-control w-auto">
+    <input type="date" class="form-control w-auto" id="scheduleDate">
 
     <!-- Search Bar -->
-    <input type="text" class="form-control w-auto" placeholder="Search patient or service">
+    <input type="text" class="form-control w-auto" id="scheduleSearch" placeholder="Search clinic or service">
     
     <!-- Search Button -->
-    <button class="btn btn-primary">Search</button>
+    <button class="btn btn-primary" id="scheduleSearchBtn">Search</button>
   </div>
 </div>
 
     <div class="card-body">
 
-      <!-- Time Slot -->
-      <div class="row border-bottom py-2 align-items-center">
-        <div class="col-md-2 fw-bold text-primary">
-          08:00 AM
-        </div>
-        <div class="col-md-10">
-          <div class="alert alert-success mb-0">
-            <strong>Maria Santos</strong><br>
-            Prenatal Check-up
-          </div>
-        </div>
-      </div>
-
-      <!-- Time Slot -->
-      <div class="row border-bottom py-2 align-items-center">
-        <div class="col-md-2 fw-bold text-primary">
-          09:00 AM
-        </div>
-        <div class="col-md-10">
-          <div class="alert alert-warning mb-0">
-            <strong>Juan Dela Cruz</strong><br>
-            Ultrasound
-          </div>
-        </div>
-      </div>
-
-      <!-- Empty Slot -->
-      <div class="row border-bottom py-2 align-items-center">
-        <div class="col-md-2 fw-bold text-muted">
-          10:00 AM
-        </div>
-        <div class="col-md-10">
-          <span class="text-muted fst-italic">Available</span>
-        </div>
-      </div>
-
-      <!-- Time Slot -->
-      <div class="row py-2 align-items-center">
-        <div class="col-md-2 fw-bold text-primary">
-          01:00 PM
-        </div>
-        <div class="col-md-10">
-          <div class="alert alert-info mb-0">
-            <strong>Ana Cruz</strong><br>
-            Postnatal Care
-          </div>
-        </div>
-      </div>
+      <div id="scheduleList"></div>
 
     </div>
   </div>
@@ -332,7 +225,65 @@
     <script src="assets/js/jquery.cookie.js"></script>
     <!-- endinject -->
     <!-- Custom js for this page -->
-    <script src="assets/js/dashboard.js"></script>
+    <script src="assets/js/dashboard.js?v=20260209"></script>
+    <script src="assets/js/patient-app.js?v=20260209"></script>
+    <script>
+      (function () {
+        var dateEl = document.getElementById('scheduleDate');
+        var searchEl = document.getElementById('scheduleSearch');
+        var listEl = document.getElementById('scheduleList');
+        var searchBtn = document.getElementById('scheduleSearchBtn');
+
+        function render(items) {
+          if (!listEl) return;
+          listEl.innerHTML = '';
+          if (!items || items.length === 0) {
+            listEl.innerHTML = '<div class="text-muted">No appointments for this date.</div>';
+            return;
+          }
+          items.forEach(function (item) {
+            var row = document.createElement('div');
+            row.className = 'row border-bottom py-2 align-items-center';
+            row.innerHTML =
+              '<div class="col-md-2 fw-bold text-primary">' + PatientApp.formatTime(item.appointment_time) + '</div>' +
+              '<div class="col-md-10">' +
+                '<div class="alert alert-info mb-0">' +
+                  '<strong>' + (item.clinic_name || '-') + '</strong><br>' +
+                  (item.service || '-') +
+                '</div>' +
+              '</div>';
+            listEl.appendChild(row);
+          });
+        }
+
+        function load() {
+          var dateVal = dateEl && dateEl.value ? dateEl.value : '';
+          var query = dateVal ? ('?date=' + encodeURIComponent(dateVal)) : '';
+          return PatientApp.apiFetch('/patient-appointments.php' + query).then(function (data) {
+            var items = data.items || [];
+            var filter = searchEl && searchEl.value ? searchEl.value.toLowerCase() : '';
+            if (filter) {
+              items = items.filter(function (item) {
+                var text = ((item.clinic_name || '') + ' ' + (item.service || '')).toLowerCase();
+                return text.indexOf(filter) !== -1;
+              });
+            }
+            render(items);
+          });
+        }
+
+        PatientApp.requirePatient().then(function () {
+          if (dateEl) {
+            var now = new Date();
+            dateEl.value = now.toISOString().slice(0, 10);
+          }
+          return load();
+        });
+
+        if (searchBtn) searchBtn.addEventListener('click', load);
+        if (dateEl) dateEl.addEventListener('change', load);
+      })();
+    </script>
     
 
     <!-- End custom js for this page -->
