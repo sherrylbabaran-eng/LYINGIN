@@ -65,11 +65,13 @@
                                     <label class="form-label">Clinic Address</label>
                                     <textarea name="address" class="form-control" rows="2" required></textarea>
                                 </div>
-
-                                <input type="hidden" name="latitude" id="latitude">
-                                <input type="hidden" name="longitude" id="longitude">
+                                <div class="col-12">
                                 <label class="form-label">Map Location</label>
+                                <input type="text" name="latitude" id="latitude" placeholder="Latitude">
+                                <input type="text" name="longitude" id="longitude" placeholder="Longitude">
+                                <input type="text" id="address" placeholder="Address" readonly>
                                 <div id="map"></div>
+                                </div>
                             </div>
 
                             <h6 class="text-primary mb-3">Contact Information</h6>
@@ -286,6 +288,24 @@ navigator.geolocation.watchPosition(success, error);
 let marker, circle;
 let zoomed = false;
 
+// Reverse Geocoding Function
+function getAddress(lat, lng) {
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+        .then(response => response.json())
+        .then(data => {
+            const address = data.display_name || "Address not found";
+
+            document.getElementById('address').value = address;
+
+            if (marker) {
+                marker.bindPopup(address).openPopup();
+            }
+        })
+        .catch(() => {
+            document.getElementById('address').value = "Unable to retrieve address";
+        });
+}
+
 function success(pos) {
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
@@ -296,27 +316,55 @@ function success(pos) {
         map.removeLayer(circle);
     }
 
-    L.marker([lat, lng]).addTo(map);
-    L.circle([lat, lng], {radius: accuracy}).addTo(map);
+    marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+    circle = L.circle([lat, lng], { radius: accuracy }).addTo(map);
 
     document.getElementById('latitude').value = lat;
     document.getElementById('longitude').value = lng;
 
+    getAddress(lat, lng);
+
     if (!zoomed) {
-        zoomed = map.fitBounds(circle.getBound());
+        map.fitBounds(circle.getBounds());
+        zoomed = true;
     }
 
     map.setView([lat, lng]);
+
+    // When marker is dragged
+    marker.on('dragend', function (e) {
+        const position = marker.getLatLng();
+        document.getElementById('latitude').value = position.lat;
+        document.getElementById('longitude').value = position.lng;
+        getAddress(position.lat, position.lng);
+    });
 }
 
-function error(err) {
+// Click on map to set marker
+map.on('click', function (e) {
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
 
-    if(err.code === 1) {
+    if (marker) {
+        map.removeLayer(marker);
+    }
+
+    marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lng;
+
+    getAddress(lat, lng);
+});
+
+function error(err) {
+    if (err.code === 1) {
         alert("Please Allow Geolocation Access!");
     } else {
         alert("Cannot Get Location");
     }
 }
+
 
 fetch("auth/api/register-clinic.php", {
     method: "POST",
