@@ -7,34 +7,17 @@
 
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-o9N1j7kGStpF9j0z0kZPz8fJ7hG6cJbNf3G3A3o0mXQ=" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
 
-    <style>
-        /* Leaflet map container */
-        #map {
-            width: 100%;
-            height: 300px;
-            min-height: 300px;
-            border-radius: 8px;
-            z-index: 0;
-        }
+     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
 
-        /* Fix Bootstrap conflict */
-        .leaflet-container {
-            background: #f8f9fa;
-            outline: none;
-        }
-
-        /* Marker fix (Bootstrap sometimes hides it) */
-        .leaflet-pane,
-        .leaflet-top,
-        .leaflet-bottom {
-            z-index: 400;
-        }
-    </style>
-
-
+     <style>
+        #map {height: 300px;} 
+     </style>
 </head>
 <body class="bg-light">
 
@@ -82,14 +65,11 @@
                                     <label class="form-label">Clinic Address</label>
                                     <textarea name="address" class="form-control" rows="2" required></textarea>
                                 </div>
+
                                 <input type="hidden" name="latitude" id="latitude">
                                 <input type="hidden" name="longitude" id="longitude">
-
-                                <div class="col-12">
-                                    <label class="form-label">Clinic Location (Pin on Map)</label>
-                                    <div id="map" style="height: 300px;" class="border rounded"></div>
-                                    <small class="text-muted">Click on the map to set clinic location</small>
-                                </div>
+                                <label class="form-label">Map Location</label>
+                                <div id="map"></div>
                             </div>
 
                             <h6 class="text-primary mb-3">Contact Information</h6>
@@ -217,13 +197,7 @@ prevBtn.addEventListener('click', () => {
     stepTabs[1].classList.remove('active');
     stepTabs[1].classList.add('disabled');
     stepTabs[0].classList.add('active');
-
-setTimeout(() => {
-    map.invalidateSize();
-}, 300);
 });
-
-
 
 
 // ID Validation
@@ -299,38 +273,50 @@ document.getElementById('clinicForm').addEventListener('submit', function(e) {
     .catch(error => console.error("Error:", error));
 });
 
-let map, marker;
+var map = L.map('map');
+map.setView([14.4815, 120.9083], 13);
 
-function initMap() {
-    if (map) return;
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
 
-    map = L.map('map').setView([14.5995, 120.9842], 13);
+navigator.geolocation.watchPosition(success, error);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+let marker, circle;
+let zoomed = false;
 
-    map.on('click', function (e) {
-        const { lat, lng } = e.latlng;
+function success(pos) {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const accuracy = pos.coords.accuracy;
 
-        if (marker) {
-            marker.setLatLng(e.latlng);
-        } else {
-            marker = L.marker(e.latlng).addTo(map);
-        }
+    if (marker) {
+        map.removeLayer(marker);
+        map.removeLayer(circle);
+    }
 
-        document.getElementById('latitude').value = lat;
-        document.getElementById('longitude').value = lng;
-    });
+    L.marker([lat, lng]).addTo(map);
+    L.circle([lat, lng], {radius: accuracy}).addTo(map);
+
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lng;
+
+    if (!zoomed) {
+        zoomed = map.fitBounds(circle.getBound());
+    }
+
+    map.setView([lat, lng]);
 }
 
-// Initialize when page loads (Step 1 is visible)
-window.addEventListener('load', () => {
-    initMap();
-    setTimeout(() => {
-        map.invalidateSize();
-    }, 300);
-});
+function error(err) {
+
+    if(err.code === 1) {
+        alert("Please Allow Geolocation Access!");
+    } else {
+        alert("Cannot Get Location");
+    }
+}
 
 fetch("auth/api/register-clinic.php", {
     method: "POST",
