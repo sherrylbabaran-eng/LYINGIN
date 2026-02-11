@@ -7,6 +7,34 @@
 
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-o9N1j7kGStpF9j0z0kZPz8fJ7hG6cJbNf3G3A3o0mXQ=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        /* Leaflet map container */
+        #map {
+            width: 100%;
+            height: 300px;
+            min-height: 300px;
+            border-radius: 8px;
+            z-index: 0;
+        }
+
+        /* Fix Bootstrap conflict */
+        .leaflet-container {
+            background: #f8f9fa;
+            outline: none;
+        }
+
+        /* Marker fix (Bootstrap sometimes hides it) */
+        .leaflet-pane,
+        .leaflet-top,
+        .leaflet-bottom {
+            z-index: 400;
+        }
+    </style>
+
+
 </head>
 <body class="bg-light">
 
@@ -53,6 +81,14 @@
                                 <div class="col-12">
                                     <label class="form-label">Clinic Address</label>
                                     <textarea name="address" class="form-control" rows="2" required></textarea>
+                                </div>
+                                <input type="hidden" name="latitude" id="latitude">
+                                <input type="hidden" name="longitude" id="longitude">
+
+                                <div class="col-12">
+                                    <label class="form-label">Clinic Location (Pin on Map)</label>
+                                    <div id="map" style="height: 300px;" class="border rounded"></div>
+                                    <small class="text-muted">Click on the map to set clinic location</small>
                                 </div>
                             </div>
 
@@ -181,7 +217,14 @@ prevBtn.addEventListener('click', () => {
     stepTabs[1].classList.remove('active');
     stepTabs[1].classList.add('disabled');
     stepTabs[0].classList.add('active');
+
+setTimeout(() => {
+    map.invalidateSize();
+}, 300);
 });
+
+
+
 
 // ID Validation
 const idType = document.getElementById('idType');
@@ -254,6 +297,39 @@ document.getElementById('clinicForm').addEventListener('submit', function(e) {
         }
     })
     .catch(error => console.error("Error:", error));
+});
+
+let map, marker;
+
+function initMap() {
+    if (map) return;
+
+    map = L.map('map').setView([14.5995, 120.9842], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    map.on('click', function (e) {
+        const { lat, lng } = e.latlng;
+
+        if (marker) {
+            marker.setLatLng(e.latlng);
+        } else {
+            marker = L.marker(e.latlng).addTo(map);
+        }
+
+        document.getElementById('latitude').value = lat;
+        document.getElementById('longitude').value = lng;
+    });
+}
+
+// Initialize when page loads (Step 1 is visible)
+window.addEventListener('load', () => {
+    initMap();
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 300);
 });
 
 fetch("auth/api/register-clinic.php", {
