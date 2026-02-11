@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Appointments</title><!DOCTYPE html>
+<html lang="en">
   <head>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Lying-in Clinics</title>
+    <title>Super Admin Lying-in</title>
     <!-- plugins:css -->
     <link rel="stylesheet" href="assets/vendors/mdi/css/materialdesignicons.min.css">
     <link rel="stylesheet" href="assets/vendors/ti-icons/css/themify-icons.css">
@@ -14,6 +18,10 @@
     <!-- Plugin css for this page -->
     <link rel="stylesheet" href="assets/vendors/font-awesome/css/font-awesome.min.css" />
     <link rel="stylesheet" href="assets/vendors/bootstrap-datepicker/bootstrap-datepicker.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <!-- End plugin css for this page -->
     <!-- inject:css -->
     <!-- endinject -->
@@ -21,9 +29,6 @@
     <link rel="stylesheet" href="assets/css/style.css">
     <!-- End layout styles -->
     <link rel="shortcut icon" href="assets/images/favicon.png" />
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
   </head>
   <body>
     <div class="container-scroller">
@@ -155,7 +160,7 @@
                 <h6 class="p-3 mb-0 text-center">See all notifications</h6>
               </div>
             </li>
-          </ul>   
+          </ul>
           <button class="navbar-toggler navbar-toggler-right d-lg-none align-self-center" type="button" data-toggle="offcanvas">
             <span class="mdi mdi-menu"></span>
           </button>
@@ -164,17 +169,18 @@
       <!-- partial -->
       <div class="container-fluid page-body-wrapper">
         <!-- partial:partials/_sidebar.html -->
-            <nav class="sidebar sidebar-offcanvas" id="sidebar">
-            <ul class="nav">
+              <nav class="sidebar sidebar-offcanvas" id="sidebar">
+        <ul class="nav">
 
-              <!-- DASHBOARD -->
-              <li class="nav-item">
-                <a class="nav-link" href="clinika.html">
-                  <span class="menu-title">Dashboard</span>
-                  <i class="mdi mdi-view-dashboard menu-icon"></i>
-                </a>
-              </li>
-              <!--LABORATORY-->
+          <!-- Dashboard -->
+          <li class="nav-item">
+            <a class="nav-link" href="clinika.html">
+              <span class="menu-title">Dashboard</span>
+              <i class="mdi mdi-home menu-icon"></i>
+            </a>
+          </li>
+
+          <!--LABORATORY-->
               <li class="nav-item">
                 <a class="nav-link" data-bs-toggle="collapse" href="#laboratoryMenu" aria-expanded="false" aria-controls="laboratoryMenu">
                   <span class="menu-title">Laboratory</span>
@@ -270,8 +276,8 @@
                   <i class="mdi mdi-cog-outline menu-icon"></i>
                 </a>
               </li>
-            </ul>
-        </nav>
+        </ul>
+      </nav>
 
         <!-- partial -->
         <div class="main-panel">
@@ -290,129 +296,96 @@
                 </ul>
               </nav>
             </div>
-            <div class="row">
-              <div class="col-md-4 stretch-card grid-margin">
-                <div class="card bg-gradient-danger card-img-holder text-white">
-                  <div class="card-body">
-                    <img src="assets/images/dashboard/circle.svg" class="card-img-absolute" alt="circle-image" />
-                    <h4 class="font-weight-normal mb-3">Successful Deliveries<i class="mdi mdi-chart-line mdi-24px float-end"></i>
-                    </h4>
-                    <h2 class="mb-5">$ 15,0000</h2>
-                    <h6 class="card-text">Increased by 60%</h6>
-                  </div>
-                </div>
-              </div> 
-              <div class="col-md-4 stretch-card grid-margin">
-                <div class="card bg-gradient-info card-img-holder text-white">
-                  <div class="card-body">
-                    <img src="assets/images/dashboard/circle.svg" class="card-img-absolute" alt="circle-image" />
-                    <h4 class="font-weight-normal mb-3">Total Patients<i class="mdi mdi-bookmark-outline mdi-24px float-end"></i>
-                    </h4>
-                    <h2 class="mb-5">45,6334</h2>
-                    <h6 class="card-text">Decreased by 10%</h6>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-4 stretch-card grid-margin">
-                <div class="card bg-gradient-success card-img-holder text-white">
-                  <div class="card-body">
-                    <img src="assets/images/dashboard/circle.svg" class="card-img-absolute" alt="circle-image" />
-                    <h4 class="font-weight-normal mb-3">Today’s Appointments<i class="mdi mdi-diamond mdi-24px float-end"></i>
-                    </h4>
-                    <h2 class="mb-5">95,5741</h2>
-                    <h6 class="card-text">Increased by 5%</h6>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-md-7 grid-margin stretch-card">
-                <div class="card">
-                  <div class="card-body">
-                    <div class="clearfix">
-                      <h4 class="card-title float-start">Status</h4>
-                      <div id="visit-sale-chart-legend" class="rounded-legend legend-horizontal legend-top-right float-end"></div>
-                    </div>
-                    <canvas id="visit-sale-chart" class="mt-4"></canvas>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-5 grid-margin stretch-card">
-                <div class="card">
-                  <div class="card-body">
-                    <h4 class="card-title">Scheduling</h4>
-                    <div class="doughnutjs-wrapper d-flex justify-content-center">
-                      <canvas id="traffic-chart"></canvas>
-                    </div>
-                    <div id="traffic-chart-legend" class="rounded-legend legend-vertical legend-bottom-left pt-4"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-12 grid-margin">
-                <div class="card">
-                  <div class="card-body">
-                    <h4 class="card-title">Clinic Name</h4>
-                    <div class="table-responsive">
-                      <table class="table">
-                        <thead>
-                          <tr>
-                            <th> Location </th>
-                            <th> Status </th>
-                            <th> Last Inspection </th>
-                            <th> Action </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td>
-                              <img src="assets/images/faces/face1.jpg" class="me-2" alt="image"> WD-12345
-                            </td>
-                            <td> Fund is not recieved </td>
-                            <td>
-                              <label class="badge badge-gradient-success">DONE</label>
-                            </td>
-                            <td> Stickman </td>
-                          </tr>
-                          <tr>
-                            <td>
-                              <img src="assets/images/faces/face2.jpg" class="me-2" alt="image"> WD-12346
-                            </td>
-                            <td> High loading time </td>
-                            <td>
-                              <label class="badge badge-gradient-warning">PROGRESS</label>
-                            </td>
-                            <td> Man of steel </td>
-                          </tr>
-                          <tr>
-                            <td>
-                              <img src="assets/images/faces/face3.jpg" class="me-2" alt="image"> WD-12347
-                            </td>
-                            <td> Website down for one week </td>
-                            <td>
-                              <label class="badge badge-gradient-info">ON HOLD</label>
-                            </td>
-                            <td> Myke </td>
-                          </tr>
-                          <tr>
-                            <td>
-                              <img src="assets/images/faces/face4.jpg" class="me-2" alt="image"> WD-12348
-                            </td>
-                            <td> Loosing control on server </td>
-                            <td>
-                              <label class="badge badge-gradient-danger">REJECTED</label>
-                            </td>
-                            <td> Falldo </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+       
+            
+        <div class="row">
+  <div class="col-12 grid-margin">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="card-title d-flex justify-content-between align-items-center">
+          Patients Records
+        </h4>
+        <div class="table-responsive">
+          <table id="prenatalTable" class="table table-striped table-bordered">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Patient Name</th>
+                <th>Age</th>
+                <th>Last Menstrual Period</th>
+                <th>Expected Delivery Date</th>
+                <th>Obstetrician</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>Maria Santos</td>
+                <td>28</td>
+                <td>2025-06-15</td>
+                <td>2026-03-22</td>
+                <td>Dr. Cruz</td>
+                <td>First pregnancy, healthy</td>
+                <td>
+                  <button class="btn btn-sm btn-primary viewBtn">View</button>
+                  <button class="btn btn-sm btn-warning editBtn">Edit</button>
+                  <button class="btn btn-sm btn-danger deleteBtn">Delete</button>
+                </td>
+              </tr>
+              <!-- Other existing records -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Record Modal -->
+<div class="modal fade" id="addRecordModal" tabindex="-1" aria-labelledby="addRecordLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="addRecordForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addRecordLabel">Add Prenatal Record</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="patientName" class="form-label">Patient Name</label>
+            <input type="text" class="form-control" id="patientName" required>
           </div>
+          <div class="mb-3">
+            <label for="age" class="form-label">Age</label>
+            <input type="number" class="form-control" id="age" required>
+          </div>
+          <div class="mb-3">
+            <label for="lmp" class="form-label">Last Menstrual Period</label>
+            <input type="date" class="form-control" id="lmp" required>
+          </div>
+          <div class="mb-3">
+            <label for="edd" class="form-label">Expected Delivery Date</label>
+            <input type="date" class="form-control" id="edd" required>
+          </div>
+          <div class="mb-3">
+            <label for="obstetrician" class="form-label">Obstetrician</label>
+            <input type="text" class="form-control" id="obstetrician" required>
+          </div>
+          <div class="mb-3">
+            <label for="notes" class="form-label">Notes</label>
+            <textarea class="form-control" id="notes" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Add Record</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
           <!-- content-wrapper ends -->
           <!-- partial:partials/_footer.html -->
           <footer class="footer">
@@ -426,6 +399,8 @@
       </div>
       <!-- page-body-wrapper ends -->
     </div>
+    <!-- container-scroller -->
+    <!-- plugins:js -->
     <script src="assets/vendors/js/vendor.bundle.base.js"></script>
     <!-- endinject -->
     <!-- Plugin js for this page -->
@@ -442,6 +417,56 @@
     <!-- Custom js for this page -->
     <script src="assets/js/dashboard.js"></script>
     <!-- End custom js for this page -->
-  
-  </body>
+  <script>
+  $(document).ready(function() {
+    var table = $('#prenatalTable').DataTable({
+      "pageLength": 5,
+      "lengthMenu": [5, 10, 20, 50],
+      "ordering": true,
+      "order": [[ 0, "asc" ]],
+      "columnDefs": [
+        { "orderable": false, "targets": 7 } // Disable ordering for Actions column
+      ]
+    });
+
+    // Add Record Form Submit
+    $('#addRecordForm').on('submit', function(e) {
+      e.preventDefault();
+
+      var name = $('#patientName').val();
+      var age = $('#age').val();
+      var lmp = $('#lmp').val();
+      var edd = $('#edd').val();
+      var obstetrician = $('#obstetrician').val();
+      var notes = $('#notes').val();
+
+      // Get new row number
+      var rowCount = table.rows().count() + 1;
+
+      // Add new row to DataTable
+      table.row.add([
+        rowCount,
+        name,
+        age,
+        lmp,
+        edd,
+        obstetrician,
+        notes,
+        `<button class="btn btn-sm btn-primary viewBtn">View</button>
+         <button class="btn btn-sm btn-warning editBtn">Edit</button>
+         <button class="btn btn-sm btn-danger deleteBtn">Delete</button>`
+      ]).draw();
+
+      // Reset form and close modal
+      $('#addRecordForm')[0].reset();
+      $('#addRecordModal').modal('hide');
+    });
+
+    // Delete row
+    $('#prenatalTable tbody').on('click', '.deleteBtn', function () {
+      table.row($(this).parents('tr')).remove().draw();
+    });
+  });
+</script>
+</body>
 </html>

@@ -1,17 +1,22 @@
 <?php
-/**
- * OTP Verification System
- * Sends 6-digit OTP to email during registration
- */
+require_once __DIR__ . '/security.php';
 
 header('Content-Type: application/json');
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(["status" => "error", "message" => "Invalid request method"]);
+    exit;
+}
+
+// Validate CSRF token
+validateCSRF();
 
 // Load .env configuration
 $envFile = null;
 $candidates = [
-    realpath(__DIR__ . '/..') . DIRECTORY_SEPARATOR . '.env',      // auth/.env
-    realpath(__DIR__ . '/../../') . DIRECTORY_SEPARATOR . '.env',   // project root /.env
-    __DIR__ . DIRECTORY_SEPARATOR . '.env'                         // auth/api/.env
+    realpath(__DIR__ . '/..') . DIRECTORY_SEPARATOR . '.env',
+    realpath(__DIR__ . '/../../') . DIRECTORY_SEPARATOR . '.env',
+    __DIR__ . DIRECTORY_SEPARATOR . '.env'
 ];
 foreach ($candidates as $cand) {
     if ($cand && file_exists($cand)) { $envFile = $cand; break; }
@@ -36,48 +41,83 @@ $db_username = "root";
 $db_password = "";
 $dbname = "lyingin_db";
 
-// Create connection
 $conn = new mysqli($servername, $db_username, $db_password, $dbname);
-
 if ($conn->connect_error) {
     echo json_encode(["status" => "error", "message" => "Database connection failed"]);
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(["status" => "error", "message" => "Invalid request method"]);
-    exit;
-}
+$email = sanitizeEmail($_POST['email'] ?? '');
 
-// Get email
-$email = trim($_POST['email'] ?? '');
-$user_type = trim($_POST['user_type'] ?? 'patient');
-
-// Validate email format
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+if (!validateEmail($email)) {
     echo json_encode(["status" => "error", "message" => "Invalid email address"]);
+    $conn->close();
     exit;
 }
 
-// Generate 6-digit OTP
-$otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-$otp_expires = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+// Check if patient account exists
+$stmt = $conn->prepare("SELECT id FROM RegPatient WHERE email = ? LIMIT 1");
+if (!$stmt) {
+    echo json_encode(["status" => "error", "message" => "Database error"]);
+    $conn->close();
+    exit;
+}
+$stmt->bind_param("s", $email);
+$stmt->execute();
+$result = $stmt->get_result();
+$stmt->close();
 
-// Store OTP in session or temporary table
-// Using session for now (simpler)
-session_start();
-$_SESSION['otp_' . md5($email)] = [
-    'otp' => $otp,
-    'expires' => $otp_expires,
-    'email' => $email
-];
+if ($result->num_rows === 0) {
+    // Do not leak account existence
+    echo json_encode([
+        "status" => "success",
+        "message" => "If your account exists, a reset link has been sent to your email."
+    ]);
+    $conn->close();
+    exit;
+}
 
-// Helper function to read all SMTP response lines
+// Create reset token
+$token = bin2hex(random_bytes(32));
+$token_hash = hash('sha256', $token);
+// Use database time for expiry to avoid PHP/MySQL timezone mismatch
+$expires_at = null;
+
+// Clear existing tokens for this email
+$cleanup = $conn->prepare("DELETE FROM password_resets WHERE email = ?");
+if ($cleanup) {
+    $cleanup->bind_param("s", $email);
+    $cleanup->execute();
+    $cleanup->close();
+}
+
+$stmt = $conn->prepare("INSERT INTO password_resets (email, token_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 MINUTE))");
+if (!$stmt) {
+    echo json_encode(["status" => "error", "message" => "Database error"]);
+    $conn->close();
+    exit;
+}
+$stmt->bind_param("ss", $email, $token_hash);
+
+if (!$stmt->execute()) {
+    echo json_encode(["status" => "error", "message" => "Failed to create reset token"]);
+    $stmt->close();
+    $conn->close();
+    exit;
+}
+$stmt->close();
+
+// Build reset link
+$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$basePath = rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'])), '/');
+$reset_link = $scheme . '://' . $host . $basePath . '/reset-password.html?token=' . urlencode($token);
+
+// SMTP helper
 function readSMTPResponse($socket) {
     $response = '';
     while ($line = fgets($socket, 1024)) {
         $response .= $line;
-        // Stop reading if line doesn't have hyphen (continuation)
         if (substr($line, 3, 1) !== '-') {
             break;
         }
@@ -85,14 +125,12 @@ function readSMTPResponse($socket) {
     return trim($response);
 }
 
-// Send OTP via SMTP (Gmail, Mailtrap, or custom SMTP)
-function sendOTPViaSMTP($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $to_email, $otp) {
+function sendResetEmail($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $to_email, $reset_link) {
     try {
-        // Determine if SSL or TLS
         $secure = getenv('MAIL_SMTP_SECURE') ?: 'tls';
         $protocol = ($secure === 'ssl') ? 'ssl://' : 'tcp://';
         $use_tls = ($secure === 'tls');
-        
+
         $context = stream_context_create([
             'ssl' => [
                 'verify_peer' => false,
@@ -100,26 +138,21 @@ function sendOTPViaSMTP($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $to_emai
                 'allow_self_signed' => true
             ]
         ]);
-        
+
         $socket = @stream_socket_client($protocol . $smtp_host . ':' . $smtp_port, $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
         if (!$socket) {
-            error_log("SMTP Connection Error: $errstr (Code: $errno) - Host: $smtp_host:$smtp_port");
+            error_log("SMTP Connection Error: $errstr (Code: $errno)");
             return false;
         }
-        
-        // Read initial response
+
         readSMTPResponse($socket);
-        
-        // Send EHLO
         fwrite($socket, "EHLO smtp.example.com\r\n");
         readSMTPResponse($socket);
-        
-        // Start TLS if needed (for port 587)
-        if ($use_tls && $smtp_port == 587) {
+
+        if ($use_tls && (int)$smtp_port === 587) {
             fwrite($socket, "STARTTLS\r\n");
             $response = readSMTPResponse($socket);
             if (strpos($response, '220') === false) {
-                error_log("STARTTLS failed: $response");
                 fclose($socket);
                 return false;
             }
@@ -127,114 +160,79 @@ function sendOTPViaSMTP($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $to_emai
             fwrite($socket, "EHLO smtp.example.com\r\n");
             readSMTPResponse($socket);
         }
-        
-        // Send AUTH LOGIN
+
         fwrite($socket, "AUTH LOGIN\r\n");
         $response = readSMTPResponse($socket);
-        
         if (strpos($response, '334') === false) {
-            error_log("SMTP AUTH prompt error: $response");
             fclose($socket);
             return false;
         }
-        
-        // Send username (base64 encoded)
+
         fwrite($socket, base64_encode($smtp_user) . "\r\n");
         $response = readSMTPResponse($socket);
-
-        
         if (strpos($response, '334') === false) {
-            error_log("SMTP username prompt error: $response");
             fclose($socket);
             return false;
         }
-        
-        // Send password (base64 encoded)
+
         fwrite($socket, base64_encode($smtp_pass) . "\r\n");
         $response = readSMTPResponse($socket);
-        
-        // Check if auth was successful
         if (strpos($response, '235') === false) {
-            error_log("SMTP AUTH Failed: $response");
             fclose($socket);
             return false;
         }
-        
-        // Send MAIL FROM
+
         fwrite($socket, "MAIL FROM:<" . $smtp_user . ">\r\n");
         readSMTPResponse($socket);
-        
-        // Send RCPT TO
+
         fwrite($socket, "RCPT TO:<" . $to_email . ">\r\n");
         readSMTPResponse($socket);
-        
-        // Send DATA
+
         fwrite($socket, "DATA\r\n");
         readSMTPResponse($socket);
-        
-        // Prepare email message
+
         $message = "From: LYINGIN Healthcare <" . $smtp_user . ">\r\n";
         $message .= "To: " . $to_email . "\r\n";
-        $message .= "Subject: Email Verification - OTP Code\r\n";
+        $message .= "Subject: Password Reset - LYINGIN\r\n";
         $message .= "MIME-Version: 1.0\r\n";
         $message .= "Content-Type: text/html; charset=UTF-8\r\n\r\n";
-        
+
         $html_body = "
         <html>
         <head>
             <style>
                 body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 0; }
-                .container { max-width: 600px; margin: 20px auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-                .header { text-align: center; margin-bottom: 30px; }
-                .logo { font-size: 24px; font-weight: bold; color: #007bff; }
-                .content { text-align: center; }
-                .otp-code { font-size: 36px; font-weight: bold; color: #007bff; letter-spacing: 5px; margin: 20px 0; padding: 20px; background-color: #f0f0f0; border-radius: 5px; }
-                .expires { font-size: 12px; color: #999; margin-top: 20px; }
-                .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #999; border-top: 1px solid #ddd; padding-top: 20px; }
+                .container { max-width: 600px; margin: 20px auto; background-color: white; padding: 30px; border-radius: 8px; }
+                .button { display: inline-block; background-color: #0d6efd; color: white; padding: 12px 18px; text-decoration: none; border-radius: 4px; }
+                .muted { color: #777; font-size: 12px; margin-top: 15px; }
             </style>
         </head>
         <body>
             <div class='container'>
-                <div class='header'>
-                    <div class='logo'>LYINGIN</div>
-                    <h2>Email Verification</h2>
-                </div>
-                <div class='content'>
-                    <p>Hello,</p>
-                    <p>Your One-Time Password (OTP) for email verification is:</p>
-                    <div class='otp-code'>" . $otp . "</div>
-                    <p>This code will expire in 10 minutes.</p>
-                    <p>If you did not request this verification, please ignore this email.</p>
-                    <div class='expires'>This OTP is valid for 10 minutes only.</div>
-                </div>
-                <div class='footer'>
-                    <p>&copy; 2024 LYINGIN Healthcare. All rights reserved.</p>
-                </div>
+                <h2>Password Reset</h2>
+                <p>We received a request to reset your password.</p>
+                <p><a class='button' href='" . htmlspecialchars($reset_link) . "'>Reset Password</a></p>
+                <p class='muted'>This link expires in 30 minutes. If you did not request this, you can ignore this email.</p>
             </div>
         </body>
         </html>
         ";
-        
+
         $message .= $html_body . "\r\n.\r\n";
-        
-        // Send message
         fwrite($socket, $message);
         readSMTPResponse($socket);
-        
-        // Send QUIT
+
         fwrite($socket, "QUIT\r\n");
         readSMTPResponse($socket);
-        
         fclose($socket);
         return true;
-        
+
     } catch (Exception $e) {
-        error_log("SMTP Exception: " . $e->getMessage());
+        error_log('SMTP Exception: ' . $e->getMessage());
         return false;
     }
 }
 
-// Get SMTP credentials from .env
 $smtp_host = getenv('MAIL_SMTP_HOST') ?: 'smtp.gmail.com';
 $smtp_port = getenv('MAIL_SMTP_PORT') ?: 587;
 $smtp_user = getenv('MAIL_USERNAME') ?: '';
@@ -249,17 +247,15 @@ if (!$smtp_user || !$smtp_pass) {
     exit;
 }
 
-// Send OTP
-if (sendOTPViaSMTP($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $email, $otp)) {
+if (sendResetEmail($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $email, $reset_link)) {
     echo json_encode([
         "status" => "success",
-        "message" => "OTP sent to your email. Valid for 10 minutes.",
-        "email" => $email
+        "message" => "If your account exists, a reset link has been sent to your email."
     ]);
 } else {
     echo json_encode([
         "status" => "error",
-        "message" => "Failed to send OTP. Please try again."
+        "message" => "Failed to send reset email. Please try again later."
     ]);
 }
 

@@ -165,10 +165,7 @@
                             <h6 class="text-primary mb-3">Account & ID Verification</h6>
 
                             <div class="row g-3 mb-4">
-                                <div class="col-md-6">
-                                    <label class="form-label">Username</label>
-                                    <input type="text" name="username" class="form-control" required>
-                                </div>
+                                
                                 <div class="col-md-6">
                                     <label class="form-label">Password</label>
                                     <input type="password" name="password" class="form-control" required>
@@ -259,14 +256,11 @@
                 </div>
                 
                 <div id="faceCaptureArea" class="text-center mb-3">
-                    <p class="text-muted mb-3">Please upload a clear photo of your face to verify against your ID</p>
-                    <input type="file" id="facePhoto" class="form-control" accept="image/*" style="display: none;">
-                    <button type="button" class="btn btn-primary" id="uploadFaceBtn">
-                        <i class="bi bi-cloud-upload"></i> Upload Face Photo
-                    </button>
-                    <button type="button" class="btn btn-outline-primary ms-2" id="useCameraBtn" style="display: none;">
+                    <p class="text-muted mb-3">Please use your device camera to take a live photo for face verification</p>
+                    <button type="button" class="btn btn-primary" id="useCameraBtn">
                         <i class="bi bi-camera-video"></i> Use Camera
                     </button>
+                    <small class="text-muted d-block mt-2">Camera is the preferred method; upload is not supported.</small>
                 </div>
 
                 <div id="previewArea" class="text-center mb-3" style="display: none;">
@@ -278,9 +272,32 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="capturePhotoBtn" style="display:none;">
+                    <i class="bi bi-camera"></i> Capture Photo
+                </button>
                 <button type="button" class="btn btn-success" id="confirmFaceBtn" style="display: none;">
                     <i class="bi bi-check-circle"></i> Confirm Verification
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- POST-REGISTRATION CHOICE MODAL -->
+<div class="modal fade" id="postRegisterModal" tabindex="-1" aria-labelledby="postRegisterLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="postRegisterLabel">Registration Complete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="postRegisterMessage" class="mb-2">Your account has been created.</p>
+                <p class="text-muted mb-0">Would you like to proceed to login or register another account?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="registerAnotherBtn">Register Another</button>
+                <button type="button" class="btn btn-primary" id="proceedLoginBtn">Go to Login</button>
             </div>
         </div>
     </div>

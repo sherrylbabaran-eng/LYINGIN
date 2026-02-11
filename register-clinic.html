@@ -280,7 +280,7 @@ document.getElementById('clinicForm').addEventListener('submit', function(e) {
 
     const formData = new FormData(this);
 
-    fetch("auth/api/register-clinic.php", {
+    fetch("/THESIS/LYINGIN/auth/api/register-clinic.php", {
         method: "POST",
         body: formData
     })

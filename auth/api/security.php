@@ -15,8 +15,10 @@ if (basename(__FILE__) === basename($_SERVER['PHP_SELF'])) {
 // ============================================
 
 // Secure session configuration
+$is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 ini_set('session.cookie_httponly', 1);      // Prevent JavaScript access to cookies
-ini_set('session.cookie_secure', 1);        // Only send over HTTPS
+ini_set('session.cookie_secure', $is_https ? 1 : 0); // Only send over HTTPS when available
 ini_set('session.cookie_samesite', 'Strict'); // CSRF protection
 ini_set('session.gc_maxlifetime', 1800);    // 30 minutes session timeout
 ini_set('session.use_strict_mode', 1);      // Prevent session fixation
