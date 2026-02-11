@@ -1071,8 +1071,11 @@ patientForm.addEventListener('submit', e => {
 window.faceVerificationComplete = false;
 let capturedFaceImage = null;
 let capturedFaceDescriptor = null;
+let firstLiveDescriptor = null;
+let secondLiveDescriptor = null;
 let idPhotoDescriptor = null;
 let modelsLoaded = false;
+let faceMatchMeta = null;
 
 const useCameraBtn = document.getElementById('useCameraBtn');
 const capturePhotoBtn = document.getElementById('capturePhotoBtn');
@@ -1113,8 +1116,8 @@ async function loadFaceModels() {
     }
 }
 
-// Extract face descriptor from image
-async function extractFaceDescriptor(image) {
+// Extract face descriptor and landmarks from image
+async function extractFaceData(image) {
     const start = (typeof performance !== 'undefined') ? performance.now() : Date.now();
     try {
         // Try TinyFaceDetector first for speed, fallback to default detector if needed
@@ -1138,12 +1141,17 @@ async function extractFaceDescriptor(image) {
         window.lastDetectionScore = score;
 
         // If confidence low, ask user to try again with better conditions
-        const MIN_CONFIDENCE = 0.45;
+        const MIN_CONFIDENCE = 0.6;
         if (score < MIN_CONFIDENCE) {
             throw new Error(`Low detection confidence (${Math.round(score*100)}%). Try removing sunglasses, cleaning lens, improving lighting, or moving closer.`);
         }
 
-        return detection.descriptor;
+        return {
+            descriptor: detection.descriptor,
+            landmarks: detection.landmarks,
+            score,
+            elapsed
+        };
     } catch (error) {
         throw new Error(`Face detection failed: ${error.message}`);
     }
@@ -1254,6 +1262,7 @@ function showFaceVerificationStatus(message, type = 'info') {
     statusDiv.innerHTML = `<div class="alert alert-${type} mb-0 small">${message}</div>`;
 }
 
+
 // Update face verification UI
 function updateFaceVerificationUI() {
     const statusDiv = document.getElementById('faceVerificationStatus');
@@ -1281,6 +1290,15 @@ async function startCamera() {
         videoStream.srcObject = cameraStream;
         videoStream.play();
 
+        // Ensure we only enable capture after metadata is available
+        capturePhotoBtn.disabled = true;
+        const onReady = () => {
+            capturePhotoBtn.disabled = false;
+            showVerificationStatus('Camera ready. Position your face and press Capture.', 'info');
+            videoStream.removeEventListener('loadedmetadata', onReady);
+        };
+        videoStream.addEventListener('loadedmetadata', onReady);
+
         // Setup track and ImageCapture if available
         videoTrack = cameraStream.getVideoTracks()[0];
         try { imageCapture = (typeof ImageCapture !== 'undefined' && videoTrack) ? new ImageCapture(videoTrack) : null; } catch (e) { imageCapture = null; }
@@ -1300,8 +1318,6 @@ async function startCamera() {
 
         // Ensure capture button is visible and enabled
         capturePhotoBtn.style.display = 'inline-block';
-        capturePhotoBtn.disabled = false;
-        showVerificationStatus('Camera ready. Position your face and press Capture.', 'info');
     } catch (error) {
         console.error('Camera error:', error);
         showVerificationStatus('Unable to access camera. Please allow camera access or use a supported device.', 'error');
@@ -1343,6 +1359,12 @@ capturePhotoBtn.addEventListener('click', async () => {
         showVerificationStatus('Capturing photo...', 'info');
         capturePhotoBtn.disabled = true;
 
+        if (!videoStream || videoStream.readyState < 2 || !videoStream.videoWidth || !videoStream.videoHeight) {
+            showVerificationStatus('Camera not ready yet. Please wait a moment and try again.', 'error');
+            capturePhotoBtn.disabled = false;
+            return;
+        }
+
         const canvas = document.getElementById('canvas');
         // Downscale for faster detection (target width)
         const targetWidth = 320;
@@ -1368,13 +1390,10 @@ capturePhotoBtn.addEventListener('click', async () => {
         enhanceCanvas(canvas);
 
         const dataUrl = canvas.toDataURL('image/jpeg');
-
-        // Stop camera immediately to freeze the UI and reduce CPU
-        stopCamera();
-
-        // Show preview (frozen frame)
+        // Show preview (frozen frame) but keep camera running for retries
         previewImage.src = dataUrl;
         previewArea.style.display = 'block';
+        videoContainer.style.display = 'none';
 
         // Run face detection on a smaller frame to speed up processing
         const img = new Image();
@@ -1382,8 +1401,9 @@ capturePhotoBtn.addEventListener('click', async () => {
             try {
                 showVerificationStatus('Detecting face...', 'info');
                 showDetectionSpinner();
-                capturedFaceDescriptor = await extractFaceDescriptor(img);
+                const faceData = await extractFaceData(img);
                 hideDetectionSpinner();
+                capturedFaceDescriptor = faceData.descriptor;
                 capturedFaceImage = img;
 
                 // Show detection metrics
@@ -1392,6 +1412,18 @@ capturePhotoBtn.addEventListener('click', async () => {
                 } else {
                     showVerificationStatus('Face detected', 'success');
                 }
+
+                if (!firstLiveDescriptor) {
+                    firstLiveDescriptor = capturedFaceDescriptor;
+                    showVerificationStatus('First capture complete. Please capture a second live photo.', 'info');
+                    confirmFaceBtn.style.display = 'none';
+                    previewArea.style.display = 'none';
+                    videoContainer.style.display = 'block';
+                    return;
+                }
+
+                secondLiveDescriptor = capturedFaceDescriptor;
+                // Two captures complete; proceed to face comparison
 
                 // Compare with ID photo if available
                 if (idPhotoDescriptor) {
@@ -1404,7 +1436,8 @@ capturePhotoBtn.addEventListener('click', async () => {
                 showVerificationStatus(err.message, 'error');
                 // allow retry: re-enable capture and restart camera
                 capturePhotoBtn.disabled = false;
-                startCamera();
+                previewArea.style.display = 'none';
+                videoContainer.style.display = 'block';
             }
         };
         img.src = dataUrl;
@@ -1443,7 +1476,8 @@ idFile.addEventListener('change', async (event) => {
             const img = new Image();
             img.onload = async () => {
                 try {
-                    idPhotoDescriptor = await extractFaceDescriptor(img);
+                    const faceData = await extractFaceData(img);
+                    idPhotoDescriptor = faceData.descriptor;
                     console.log('ID face extracted successfully');
                     
                     // If we already have a captured face, compare them
@@ -1470,30 +1504,43 @@ idFile.addEventListener('change', async (event) => {
 
 // Compare captured face with ID photo using Euclidean distance (lower is better)
 function compareFaces() {
-    if (!capturedFaceDescriptor || !idPhotoDescriptor) {
+    if (!firstLiveDescriptor || !secondLiveDescriptor || !idPhotoDescriptor) {
         showVerificationStatus('Both face photo and ID are required for verification.', 'error');
         confirmFaceBtn.style.display = 'none';
         return;
     }
 
-    const distance = calculateDistance(capturedFaceDescriptor, idPhotoDescriptor);
-    const thresholdDistance = 0.6; // typical threshold: <=0.6 indicates a likely match
-    const isMatching = distance <= thresholdDistance;
+    const thresholdDistance = 0.5; // stricter threshold for higher security
+    const selfMatchThreshold = 0.45; // ensure two live captures are consistent
+    const distance1 = calculateDistance(firstLiveDescriptor, idPhotoDescriptor);
+    const distance2 = calculateDistance(secondLiveDescriptor, idPhotoDescriptor);
+    const liveDistance = calculateDistance(firstLiveDescriptor, secondLiveDescriptor);
+    const isMatching = distance1 <= thresholdDistance && distance2 <= thresholdDistance && liveDistance <= selfMatchThreshold;
 
     // Debugging info
-    console.log('Face distance:', distance, 'threshold:', thresholdDistance);
+    console.log('Face distance 1:', distance1, 'distance 2:', distance2, 'live distance:', liveDistance, 'threshold:', thresholdDistance);
 
     if (isMatching) {
-        const matchPercent = Math.max(0, Math.round((1 - (distance / thresholdDistance)) * 100));
+        const matchPercent = Math.max(0, Math.round((1 - (Math.max(distance1, distance2) / thresholdDistance)) * 100));
+        faceMatchMeta = {
+            live1: Array.from(firstLiveDescriptor),
+            live2: Array.from(secondLiveDescriptor),
+            id: Array.from(idPhotoDescriptor),
+            d1: distance1,
+            d2: distance2,
+            dlive: liveDistance
+        };
         showVerificationStatus(
-            `✓ Face Match Verified! (distance: ${distance.toFixed(3)} — approx ${matchPercent}% confidence) Your face matches your ID.`,
+            `✓ Face Match Verified! (distance: ${Math.max(distance1, distance2).toFixed(3)} — approx ${matchPercent}% confidence) Your face matches your ID.`,
             'success'
         );
         confirmFaceBtn.style.display = 'inline-block';
     } else {
-        const matchPercent = Math.max(0, Math.round((1 - (distance / (thresholdDistance*2))) * 100));
+        faceMatchMeta = null;
+        const worst = Math.max(distance1, distance2, liveDistance);
+        const matchPercent = Math.max(0, Math.round((1 - (worst / (thresholdDistance*2))) * 100));
         showVerificationStatus(
-            `✗ Face Match Failed (distance: ${distance.toFixed(3)} — low confidence ${matchPercent}%). The face in your photo doesn't match your ID. Please upload a clearer photo or retake the live photo.`,
+            `✗ Face Match Failed (distance: ${worst.toFixed(3)} — low confidence ${matchPercent}%). The face in your photo doesn't match your ID. Please upload a clearer photo or retake the live photo.`,
             'error'
         );
         confirmFaceBtn.style.display = 'none';
@@ -1502,19 +1549,33 @@ function compareFaces() {
 
 // Confirm face verification
 confirmFaceBtn.addEventListener('click', () => {
+    if (!faceMatchMeta) {
+        showVerificationStatus('Please complete face verification before confirming.', 'error');
+        return;
+    }
     window.faceVerificationComplete = true;
     updateFaceVerificationUI();
 
+    const setHidden = (id, name, value) => {
+        let el = document.getElementById(id);
+        if (!el) {
+            el = document.createElement('input');
+            el.type = 'hidden';
+            el.id = id;
+            el.name = name;
+            document.getElementById('patientForm').appendChild(el);
+        }
+        el.value = value;
+    };
+
     // Ensure the form includes a hidden flag so the server knows face was confirmed
-    let hidden = document.getElementById('hiddenFaceVerified');
-    if (!hidden) {
-        hidden = document.createElement('input');
-        hidden.type = 'hidden';
-        hidden.id = 'hiddenFaceVerified';
-        hidden.name = 'face_verified';
-        document.getElementById('patientForm').appendChild(hidden);
-    }
-    hidden.value = '1';
+    setHidden('hiddenFaceVerified', 'face_verified', '1');
+    setHidden('hiddenFaceLive1', 'face_live_1', JSON.stringify(faceMatchMeta.live1));
+    setHidden('hiddenFaceLive2', 'face_live_2', JSON.stringify(faceMatchMeta.live2));
+    setHidden('hiddenFaceId', 'face_id', JSON.stringify(faceMatchMeta.id));
+    setHidden('hiddenFaceD1', 'face_dist_1', String(faceMatchMeta.d1));
+    setHidden('hiddenFaceD2', 'face_dist_2', String(faceMatchMeta.d2));
+    setHidden('hiddenFaceDLive', 'face_live_dist', String(faceMatchMeta.dlive));
 
     // Show success message
     const modal = bootstrap.Modal.getInstance(document.getElementById('faceVerificationModal'));
@@ -1530,6 +1591,9 @@ document.getElementById('faceVerificationModal').addEventListener('show.bs.modal
     if (confirmFaceBtn) confirmFaceBtn.style.display = 'none';
     if (verificationResult) verificationResult.innerHTML = '';
     if (previewArea) previewArea.style.display = 'none';
+    firstLiveDescriptor = null;
+    secondLiveDescriptor = null;
+    faceMatchMeta = null;
     startCamera();
 });
 
@@ -1583,6 +1647,9 @@ function resetRegistrationFormState() {
     updateFaceVerificationUI();
     capturedFaceImage = null;
     capturedFaceDescriptor = null;
+    firstLiveDescriptor = null;
+    secondLiveDescriptor = null;
+    faceMatchMeta = null;
     idPhotoDescriptor = null;
     if (previewImage) previewImage.src = '';
     if (previewArea) previewArea.style.display = 'none';
