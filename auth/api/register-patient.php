@@ -160,6 +160,31 @@ function normalize_ocr_digits($text) {
     return strtr($t, $map);
 }
 
+function parse_face_descriptor($raw) {
+    if (!$raw) return null;
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) return null;
+    if (count($decoded) < 64) return null;
+    $out = [];
+    foreach ($decoded as $v) {
+        if (!is_numeric($v)) return null;
+        $out[] = (float)$v;
+    }
+    return $out;
+}
+
+function face_distance($a, $b) {
+    if (!$a || !$b) return null;
+    $len = min(count($a), count($b));
+    if ($len < 64) return null;
+    $sum = 0.0;
+    for ($i = 0; $i < $len; $i++) {
+        $d = $a[$i] - $b[$i];
+        $sum += $d * $d;
+    }
+    return sqrt($sum);
+}
+
 function extract_digit_candidates($text) {
     $candidates = [];
     if (!$text) return $candidates;
@@ -656,8 +681,41 @@ if ($cleanup_stmt) {
     $cleanup_stmt->close();
 }
 
-// Only mark face_verified if client explicitly confirmed face verification; defaults to 0
+// Enforce face verification with server-side distance checks
 $face_verified = (isset($_POST['face_verified']) && $_POST['face_verified'] == '1') ? 1 : 0;
+if (!$face_verified) {
+    echo json_encode(["status" => "error", "message" => "Please complete face verification before registering."]);
+    exit;
+}
+
+$face_live_1_raw = $_POST['face_live_1'] ?? '';
+$face_live_2_raw = $_POST['face_live_2'] ?? '';
+$face_id_raw = $_POST['face_id'] ?? '';
+
+$face_live_1 = parse_face_descriptor($face_live_1_raw);
+$face_live_2 = parse_face_descriptor($face_live_2_raw);
+$face_id = parse_face_descriptor($face_id_raw);
+
+if (!$face_live_1 || !$face_live_2 || !$face_id) {
+    echo json_encode(["status" => "error", "message" => "Face verification data is missing or invalid. Please retry."]);
+    exit;
+}
+
+$d1 = face_distance($face_live_1, $face_id);
+$d2 = face_distance($face_live_2, $face_id);
+$dlive = face_distance($face_live_1, $face_live_2);
+
+if ($d1 === null || $d2 === null || $dlive === null) {
+    echo json_encode(["status" => "error", "message" => "Face verification failed. Please retry."]);
+    exit;
+}
+
+$threshold = 0.5;
+$self_threshold = 0.45;
+if (!($d1 <= $threshold && $d2 <= $threshold && $dlive <= $self_threshold)) {
+    echo json_encode(["status" => "error", "message" => "Face verification did not meet security thresholds. Please try again."]);
+    exit;
+}
 
 // Use OTP session verification and skip post-registration email verification
 $session_email = $_SESSION['verified_email'] ?? '';
