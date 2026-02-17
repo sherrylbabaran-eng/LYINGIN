@@ -63,13 +63,12 @@
 
                                 <div class="col-12">
                                     <label class="form-label">Clinic Address</label>
-                                    <textarea name="address" class="form-control" rows="2" required></textarea>
+                                    <textarea name="address" id="address" placeholder="Address" readonly class="form-control" rows="2" required></textarea>
                                 </div>
                                 <div class="col-12">
                                 <label class="form-label">Map Location</label>
                                 <input type="text" name="latitude" id="latitude" placeholder="Latitude">
                                 <input type="text" name="longitude" id="longitude" placeholder="Longitude">
-                                <input type="text" id="address" placeholder="Address" readonly>
                                 <div id="map"></div>
                                 </div>
                             </div>
@@ -366,10 +365,16 @@ function error(err) {
 }
 
 
-fetch("auth/api/register-clinic.php", {
-    method: "POST",
-    body: formData
-})
+document.getElementById('clinicForm').addEventListener('submit', function(e) {
+
+    const formData = new FormData(this);
+    fetch("/THESIS/LYINGIN/auth/api/register-clinic.php", {
+        method: "POST",
+        body: formData
+    })
+    
+});
+
 
 </script>
 
