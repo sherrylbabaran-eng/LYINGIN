@@ -69,6 +69,8 @@
                                 <label class="form-label">Map Location</label>
                                 <input type="text" name="latitude" id="latitude" placeholder="Latitude">
                                 <input type="text" name="longitude" id="longitude" placeholder="Longitude">
+                                </div>
+                                <div class="col-12">
                                 <div id="map"></div>
                                 </div>
                             </div>
@@ -255,7 +257,7 @@ document.getElementById('clinicForm').addEventListener('submit', function(e) {
 
     const formData = new FormData(this);
 
-    fetch("/THESIS/LYINGIN/auth/api/register-clinic.php", {
+    fetch("auth/api/register-clinic.php", {
         method: "POST",
         body: formData
     })
@@ -282,7 +284,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 }).addTo(map);
 
-navigator.geolocation.watchPosition(success, error);
+navigator.geolocation.getCurrentPosition(success, error);
 
 let marker, circle;
 let zoomed = false;
@@ -363,17 +365,6 @@ function error(err) {
         alert("Cannot Get Location");
     }
 }
-
-
-document.getElementById('clinicForm').addEventListener('submit', function(e) {
-
-    const formData = new FormData(this);
-    fetch("/THESIS/LYINGIN/auth/api/register-clinic.php", {
-        method: "POST",
-        body: formData
-    })
-    
-});
 
 
 </script>
