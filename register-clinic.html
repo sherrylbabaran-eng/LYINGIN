@@ -192,13 +192,61 @@ const step2 = document.getElementById('step2');
 const nextBtn = document.getElementById('nextBtn');
 const prevBtn = document.getElementById('prevBtn');
 const stepTabs = document.querySelectorAll('#stepTabs .nav-link');
+const formError = document.getElementById('formError');
 
 nextBtn.addEventListener('click', () => {
+    const step1Fields = step1.querySelectorAll('input, textarea'); // all Step 1 inputs
+    let valid = true;
+    let messages = [];
+
+    step1Fields.forEach(field => {
+    field.classList.remove('is-invalid');
+
+    // Custom check for readonly address
+    if (field.name === 'address' && field.value.trim() === '') {
+        valid = false;
+        field.classList.add('is-invalid');
+        messages.push("Clinic Address must be set via the map");
+        return; // skip default validity check
+    }
+
+    // Normal HTML5 validation
+    if (!field.checkValidity()) {
+        valid = false;
+        field.classList.add('is-invalid');
+
+        if (field.name === 'clinic_name') messages.push("Clinic Name is required");
+        if (field.name === 'license_number') messages.push("Valid License Number is required");
+        if (field.name === 'latitude' || field.name === 'longitude') messages.push("Clinic Map Location must be set");
+        if (field.name === 'email') messages.push("Valid Email is required");
+        if (field.name === 'contact_number') messages.push("Valid Contact Number is required");
+    }
+});
+
+    if (!valid) {
+        // Show alert at the top
+        formError.innerHTML = messages.join('<br>');
+        formError.classList.remove('d-none');
+        formError.scrollIntoView({behavior: "smooth"});
+        return; // Do not proceed to Step 2
+    }
+
+    // All fields valid – hide alert and go to next step
+    formError.classList.add('d-none');
+
     step1.classList.add('d-none');
     step2.classList.remove('d-none');
     stepTabs[0].classList.remove('active');
     stepTabs[1].classList.remove('disabled');
     stepTabs[1].classList.add('active');
+});
+
+step1.querySelectorAll('input, textarea').forEach(field => {
+    field.addEventListener('input', () => {
+        if (field.checkValidity()) {
+            field.classList.remove('is-invalid');
+        }
+    });
 });
 
 prevBtn.addEventListener('click', () => {
