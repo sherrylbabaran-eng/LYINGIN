@@ -44,6 +44,10 @@
                     </ul>
 
                     <form id="clinicForm" enctype="multipart/form-data">
+    <!-- CSRF token populated via JS -->
+    <input type="hidden" name="csrf_token" id="csrfToken">
+    <!-- inline error display -->
+    <div id="formError" class="alert alert-danger d-none"></div>
 
                         <!-- STEP 1 -->
                         <div id="step1">
@@ -67,8 +71,11 @@
                                 </div>
                                 <div class="col-12">
                                 <label class="form-label">Map Location</label>
-                                <input type="text" name="latitude" id="latitude" placeholder="Latitude">
-                                <input type="text" name="longitude" id="longitude" placeholder="Longitude">
+                                <!-- lat/lng are managed by the map; readonly prevents user mistakes -->
+                                <div class="d-flex gap-2">
+                                    <input type="text" name="latitude" id="latitude" placeholder="Latitude" readonly class="form-control">
+                                    <input type="text" name="longitude" id="longitude" placeholder="Longitude" readonly class="form-control">
+                                </div>
                                 </div>
                                 <div class="col-12">
                                 <div id="map"></div>
@@ -85,7 +92,7 @@
 
                                 <div class="col-md-6">
                                     <label class="form-label">Contact Number</label>
-                                    <input type="text" name="contact_number" class="form-control" required>
+                                    <input type="text" name="contact_number" class="form-control" required pattern="[0-9\-\+ ]{7,20}" title="Digits, spaces, + or - only">
                                 </div>
                             </div>
 
@@ -248,12 +255,33 @@ idFile.addEventListener('change', () => {
 // Single submit handler
 document.getElementById('clinicForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    // clear previous error
+    document.getElementById('formError').classList.add('d-none');
 
     // Validate ID
     if (idNumber.classList.contains('is-invalid') || idFile.classList.contains('is-invalid') || !idType.value) {
-        alert('Please provide a valid ID before submitting.');
+        showError('Please provide a valid ID before submitting.');
         return;
     }
+
+    // before serializing ensure coordinates are plausible
+    let latVal = parseFloat(document.getElementById('latitude').value);
+    let lngVal = parseFloat(document.getElementById('longitude').value);
+
+    if (isNaN(latVal) || isNaN(lngVal)) {
+        showError('Map location not set');
+        return;
+    }
+    if (latVal < -90 || latVal > 90 || lngVal < -180 || lngVal > 180) {
+        if (lngVal >= -90 && lngVal <= 90 && latVal >= -180 && latVal <= 180) {
+            [latVal, lngVal] = [lngVal, latVal];
+        } else {
+            showError('Invalid map coordinates');
+            return;
+        }
+    }
+    document.getElementById('latitude').value = latVal.toFixed(6);
+    document.getElementById('longitude').value = lngVal.toFixed(6);
 
     const formData = new FormData(this);
 
@@ -273,21 +301,97 @@ document.getElementById('clinicForm').addEventListener('submit', function(e) {
             stepTabs[0].classList.add('active');
         }
     })
-    .catch(error => console.error("Error:", error));
+    .catch(error => {
+        console.error("Error:", error);
+        showError('Network error, please try again');
+    });
 });
 
-var map = L.map('map');
-map.setView([14.4815, 120.9083], 13);
+// ===================== CAVITE BOUNDARIES =====================
+// Strict bounding box for Cavite
+const caviteBounds = L.latLngBounds(
+    [13.90, 120.50],  // Southwest corner
+    [14.70, 121.50]   // Northeast corner
+);
 
+// ===================== MAP INITIALIZATION =====================
+const map = L.map('map', {
+    center: [14.30, 120.90],     // Center of Cavite
+    zoom: 10,
+    minZoom: 10,                 // Prevent zooming out
+    maxZoom: 18,
+    maxBounds: caviteBounds,     // Prevent panning outside
+    maxBoundsViscosity: 1.0      // Hard lock to bounds
+});
+
+// Force exact Cavite view
+map.fitBounds(caviteBounds);
+
+// Lock zoom OUT beyond Cavite
+const lockedZoom = map.getBoundsZoom(caviteBounds);
+map.setMinZoom(lockedZoom);
+
+// Disable scroll zoom bounce outside bounds
+map.setMaxBounds(caviteBounds);
+
+// Optional: Disable double click zoom if you want strict control
+// map.doubleClickZoom.disable();
+
+// ===================== TILE LAYER =====================
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
-    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    attribution: '&copy; OpenStreetMap'
 }).addTo(map);
 
-navigator.geolocation.getCurrentPosition(success, error);
+// ===================== HELPER FUNCTION =====================
+function insideCavite(lat, lng) {
+    return caviteBounds.contains([lat, lng]);
+}
 
-let marker, circle;
-let zoomed = false;
+// ===================== MARKER HANDLING =====================
+let marker = null;
+
+map.on('click', function (e) {
+
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+
+    if (!insideCavite(lat, lng)) {
+        showError("Location must be inside Cavite province.");
+        return;
+    }
+
+    if (marker) {
+        map.removeLayer(marker);
+    }
+
+    marker = L.marker([lat, lng], {
+        draggable: true
+    }).addTo(map);
+
+    document.getElementById('latitude').value = lat.toFixed(6);
+    document.getElementById('longitude').value = lng.toFixed(6);
+
+    getAddress(lat, lng);
+
+    // Prevent dragging outside Cavite
+    marker.on('dragend', function () {
+        const pos = marker.getLatLng();
+
+        if (!insideCavite(pos.lat, pos.lng)) {
+            showError("Marker must remain inside Cavite.");
+            marker.setLatLng([lat, lng]);
+            return;
+        }
+
+        document.getElementById('latitude').value = pos.lat.toFixed(6);
+        document.getElementById('longitude').value = pos.lng.toFixed(6);
+        getAddress(pos.lat, pos.lng);
+    });
+
+});
+
+map.scrollWheelZoom.setMinZoom(lockedZoom);
 
 // Reverse Geocoding Function
 function getAddress(lat, lng) {
@@ -307,63 +411,13 @@ function getAddress(lat, lng) {
         });
 }
 
-function success(pos) {
-    const lat = pos.coords.latitude;
-    const lng = pos.coords.longitude;
-    const accuracy = pos.coords.accuracy;
 
-    if (marker) {
-        map.removeLayer(marker);
-        map.removeLayer(circle);
-    }
 
-    marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-    circle = L.circle([lat, lng], { radius: accuracy }).addTo(map);
-
-    document.getElementById('latitude').value = lat;
-    document.getElementById('longitude').value = lng;
-
-    getAddress(lat, lng);
-
-    if (!zoomed) {
-        map.fitBounds(circle.getBounds());
-        zoomed = true;
-    }
-
-    map.setView([lat, lng]);
-
-    // When marker is dragged
-    marker.on('dragend', function (e) {
-        const position = marker.getLatLng();
-        document.getElementById('latitude').value = position.lat;
-        document.getElementById('longitude').value = position.lng;
-        getAddress(position.lat, position.lng);
-    });
-}
-
-// Click on map to set marker
-map.on('click', function (e) {
-    const lat = e.latlng.lat;
-    const lng = e.latlng.lng;
-
-    if (marker) {
-        map.removeLayer(marker);
-    }
-
-    marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-
-    document.getElementById('latitude').value = lat;
-    document.getElementById('longitude').value = lng;
-
-    getAddress(lat, lng);
-});
-
-function error(err) {
-    if (err.code === 1) {
-        alert("Please Allow Geolocation Access!");
-    } else {
-        alert("Cannot Get Location");
-    }
+// utility to display form error
+function showError(msg) {
+    const el = document.getElementById('formError');
+    el.textContent = msg;
+    el.classList.remove('d-none');
 }
 
 
