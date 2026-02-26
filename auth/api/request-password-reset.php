@@ -127,6 +127,7 @@ function readSMTPResponse($socket) {
 
 function sendResetEmail($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $to_email, $reset_link) {
     try {
+        $fromName = getenv('MAIL_FROM_NAME') ?: 'LYINGIN';
         $secure = getenv('MAIL_SMTP_SECURE') ?: 'tls';
         $protocol = ($secure === 'ssl') ? 'ssl://' : 'tcp://';
         $use_tls = ($secure === 'tls');
@@ -191,7 +192,7 @@ function sendResetEmail($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $to_emai
         fwrite($socket, "DATA\r\n");
         readSMTPResponse($socket);
 
-        $message = "From: LYINGIN Healthcare <" . $smtp_user . ">\r\n";
+        $message = "From: " . $fromName . " <" . $smtp_user . ">\r\n";
         $message .= "To: " . $to_email . "\r\n";
         $message .= "Subject: Password Reset - LYINGIN\r\n";
         $message .= "MIME-Version: 1.0\r\n";

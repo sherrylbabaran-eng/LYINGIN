@@ -8,6 +8,32 @@ require_once __DIR__ . '/security.php';
 
 header('Content-Type: application/json');
 
+// Load .env configuration
+$envFile = null;
+$candidates = [
+    realpath(__DIR__ . '/..') . DIRECTORY_SEPARATOR . '.env',      // auth/.env
+    realpath(__DIR__ . '/../../') . DIRECTORY_SEPARATOR . '.env',   // project root /.env
+    __DIR__ . DIRECTORY_SEPARATOR . '.env'                         // auth/api/.env
+];
+foreach ($candidates as $cand) {
+    if ($cand && file_exists($cand)) { $envFile = $cand; break; }
+}
+if ($envFile) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos(trim($line), '#') === 0) continue;
+        if (!strpos($line, '=')) continue;
+        list($key, $val) = explode('=', $line, 2);
+        $key = trim($key);
+        $val = trim($val);
+        $val = trim($val, "'\"");
+        putenv("$key=$val");
+        $_ENV[$key] = $val;
+    }
+}
+
+require_once __DIR__ . '/mail-helper.php';
+
 // Database configuration
 $servername = "localhost";
 $db_username = "root";
@@ -115,13 +141,9 @@ $message = "
 </html>
 ";
 
-// ========== GMAIL CONFIGURATION ==========
-// Change these to your actual Gmail account
-$gmail_sender = 'tandicoalessandranicole@gmail.com';    // Your Gmail address
-$gmail_password = 'zbjs naxg scid wzzi';                // Your Gmail App Password
-
-// Send email using Gmail SMTP
-if (sendEmailViaGmail($gmail_sender, $gmail_password, $email, $subject, $message)) {
+// Send email using PHPMailer
+$phpmailer_error = null;
+if (sendMailWithPHPMailer($email, $subject, $message, $phpmailer_error)) {
     logSecurityEvent('VERIFICATION_EMAIL_SENT', ['email' => $email, 'type' => $user_type]);
     echo json_encode([
         "status" => "success",
@@ -130,82 +152,8 @@ if (sendEmailViaGmail($gmail_sender, $gmail_password, $email, $subject, $message
     ]);
 } else {
     logSecurityEvent('EMAIL_SEND_FAILED', ['email' => $email]);
-    echo json_encode(["status" => "error", "message" => "Failed to send verification email. Check Gmail credentials."]);
-}
-
-/**
- * Send Email via Gmail SMTP
- * Works with real Gmail accounts
- */
-function sendEmailViaGmail($gmail_sender, $gmail_password, $to_email, $subject, $html_body) {
-    try {
-        // Connect to Gmail SMTP
-        $context = stream_context_create([
-            'ssl' => [
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-            ]
-        ]);
-
-        $socket = @stream_socket_client(
-            'ssl://smtp.gmail.com:465',
-            $errno,
-            $errstr,
-            30,
-            STREAM_CLIENT_CONNECT,
-            $context
-        );
-
-        if (!$socket) {
-            return false;
-        }
-
-        stream_set_timeout($socket, 5);
-        fgets($socket);
-
-        fputs($socket, "EHLO localhost\r\n");
-        fgets($socket);
-
-        fputs($socket, "AUTH LOGIN\r\n");
-        fgets($socket);
-
-        fputs($socket, base64_encode($gmail_sender) . "\r\n");
-        fgets($socket);
-
-        fputs($socket, base64_encode($gmail_password) . "\r\n");
-        $response = fgets($socket);
-
-        if (strpos($response, '235') === false) {
-            fclose($socket);
-            return false;
-        }
-
-        fputs($socket, "MAIL FROM:<$gmail_sender>\r\n");
-        fgets($socket);
-
-        fputs($socket, "RCPT TO:<$to_email>\r\n");
-        fgets($socket);
-
-        fputs($socket, "DATA\r\n");
-        fgets($socket);
-
-        $headers = "From: LYINGIN <$gmail_sender>\r\n";
-        $headers .= "To: $to_email\r\n";
-        $headers .= "Subject: $subject\r\n";
-        $headers .= "MIME-Version: 1.0\r\n";
-        $headers .= "Content-Type: text/html; charset=UTF-8\r\n\r\n";
-
-        fputs($socket, $headers . $html_body . "\r\n.\r\n");
-        fgets($socket);
-
-        fputs($socket, "QUIT\r\n");
-        fclose($socket);
-
-        return true;
-
-    } catch (Exception $e) {
-        return false;
-    }
+    $detail = $phpmailer_error ? (': ' . $phpmailer_error) : '';
+    echo json_encode(["status" => "error", "message" => "Failed to send verification email" . $detail . "."]);
 }
 
 $conn->close();

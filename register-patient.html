@@ -10,79 +10,12 @@
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+
+    <link rel="stylesheet" href="assets/css/register-patient.css?v=20260226a"/>
     
     <!-- Face-API for face detection -->
     <script async src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
     
-    <style>
-        #mapContainer {
-            height: 350px;
-            border-radius: 5px;
-            margin-bottom: 1rem;
-            border: 1px solid #ddd;
-        }
-        
-        #faceVerificationModal .modal-body {
-            background: #f8f9fa;
-        }
-        
-        #videoContainer {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-            margin: 0 auto;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #000;
-        }
-        
-        #videoStream {
-            width: 100%;
-            display: block;
-            transform: scaleX(-1);
-        }
-        
-        #canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            display: none;
-        }
-        
-        .face-box {
-            border: 2px solid #28a745;
-            border-radius: 4px;
-            position: absolute;
-            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
-        }
-        
-        .verification-status {
-            padding: 10px 15px;
-            border-radius: 4px;
-            margin-top: 10px;
-            text-align: center;
-            font-weight: 500;
-        }
-        
-        .status-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .status-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .status-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-    </style>
 </head>
 <body class="bg-light">
 
@@ -108,7 +41,7 @@
                         </li>
                     </ul>
 
-                    <form id="patientForm" enctype="multipart/form-data">
+                    <form id="patientForm" enctype="multipart/form-data" autocomplete="on">
 
                         <!-- STEP 1: Personal Info -->
                         <div id="step1">
@@ -116,20 +49,20 @@
 
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
-                                    <label class="form-label">First Name</label>
-                                    <input type="text" name="first_name" class="form-control" required>
+                                    <label class="form-label" for="firstName">First Name</label>
+                                    <input type="text" id="firstName" name="first_name" class="form-control" autocomplete="given-name" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Last Name</label>
-                                    <input type="text" name="last_name" class="form-control" required>
+                                    <label class="form-label" for="lastName">Last Name</label>
+                                    <input type="text" id="lastName" name="last_name" class="form-control" autocomplete="family-name" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Birthdate</label>
-                                    <input type="date" name="birthdate" class="form-control" required>
+                                    <label class="form-label" for="birthdate">Birthdate</label>
+                                    <input type="date" id="birthdate" name="birthdate" class="form-control" autocomplete="bday" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Gender</label>
-                                    <select name="gender" class="form-select" required>
+                                    <label class="form-label" for="gender">Gender</label>
+                                    <select id="gender" name="gender" class="form-select" required>
                                         <option value="">Select Gender</option>
                                         <option value="male">Male</option>
                                         <option value="female">Female</option>
@@ -137,16 +70,16 @@
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Email Address</label>
+                                    <label class="form-label" for="emailInput">Email Address</label>
                                     <div class="input-group">
-                                        <input type="email" id="emailInput" name="email" class="form-control" required>
-                                        <button class="btn btn-outline-primary d-none" type="button" id="verifyEmailBtn">Verify</button>
+                                        <input type="email" id="emailInput" name="email" class="form-control" autocomplete="email" required>
+                                        <button class="btn btn-outline-primary d-none" type="button" id="verifyEmailBtn">Send Code</button>
                                     </div>
                                     <div id="emailVerificationStatus" class="mt-2"></div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Contact Number</label>
-                                    <input type="text" name="contact_no" class="form-control" required>
+                                    <label class="form-label" for="contactNumber">Contact Number</label>
+                                    <input type="text" id="contactNumber" name="contact_no" class="form-control" inputmode="tel" autocomplete="tel" required>
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">Location on Map</label>
@@ -154,8 +87,8 @@
                                     <small class="text-muted">Drag the pin to set your location</small>
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label">Address</label>
-                                    <textarea name="address" class="form-control" rows="2" placeholder="Drag pin on map to auto-fill" required></textarea>
+                                    <label class="form-label" for="addressInput">Address</label>
+                                    <textarea id="addressInput" name="address" class="form-control" rows="2" placeholder="Drag pin on map to auto-fill" autocomplete="street-address" required></textarea>
                                 </div>
                             </div>
 
@@ -171,14 +104,13 @@
                             <div class="row g-3 mb-4">
                                 
                                 <div class="col-md-6">
-                                    <label class="form-label">Password</label>
-                                    <input type="password" name="password" class="form-control" required>
-                                    <small class="text-muted d-block">At least 8 chars, 2 uppercase, 1 lowercase, 1 number, 1 symbol.</small>
-                                    <small class="text-danger d-none" id="passwordError">Password does not meet requirements.</small>
+                                    <label class="form-label" for="passwordInput">Password</label>
+                                    <input type="password" id="passwordInput" name="password" class="form-control" autocomplete="new-password" required>
+                                    <small class="text-danger d-none" id="passwordError">Password does not meet requirements. At least 8 chars, 2 uppercase, a number, and a symbol.</small>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Confirm Password</label>
-                                    <input type="password" name="confirm_password" class="form-control" required>
+                                    <label class="form-label" for="confirmPasswordInput">Confirm Password</label>
+                                    <input type="password" id="confirmPasswordInput" name="confirm_password" class="form-control" autocomplete="new-password" required>
                                     <small class="text-danger d-none" id="confirmPasswordError">Passwords do not match.</small>
                                 </div>
                             </div>
@@ -201,15 +133,22 @@
                                 <div class="col-md-6">
                                     <label class="form-label">ID Number</label>
                                     <input type="text" id="idNumber" name="id_number" class="form-control" required>
-                                    <small id="idFormatHelp" class="text-muted d-block small mt-1">Format depends on selected ID type. Select an ID type to see details.</small>
+                                    <small id="idFormatHelp" class="text-muted d-none small mt-1"></small>
                                     <small class="text-danger d-none" id="idError">Invalid ID number format</small>
                                 </div>
 
-                                <div class="col-12">
-                                    <label class="form-label">Upload Valid ID</label>
+                                <div class="col-md-6">
+                                    <label class="form-label">Upload Valid ID (Front)</label>
                                     <input type="file" id="idFile" name="idFile" class="form-control" accept="image/*,.pdf" required>
                                     <small class="text-danger d-none" id="fileError">Invalid file (JPG, PNG, PDF only / max 5MB)</small>
                                     <small class="text-muted d-none" id="fileNote"></small>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Upload Valid ID (Back)</label>
+                                    <input type="file" id="idFileBack" name="idFileBack" class="form-control" accept="image/*,.pdf" required>
+                                    <small class="text-danger d-none" id="fileBackError">Invalid file (JPG, PNG, PDF only / max 5MB)</small>
+                                    <small class="text-muted d-none" id="fileBackNote"></small>
                                 </div>
 
                                 <div class="col-12">
@@ -223,8 +162,8 @@
                             </div>
 
                             <div class="form-check mb-4">
-                                <input class="form-check-input" type="checkbox" required>
-                                <label class="form-check-label">
+                                <input class="form-check-input" type="checkbox" id="termsAgree" name="terms_agree" required>
+                                <label class="form-check-label" for="termsAgree">
                                     I agree to the <a href="#">Terms and Conditions</a>
                                 </label>
                             </div>
@@ -235,7 +174,7 @@
                             </div>
 
                             <p class="text-center mt-3 text-muted">
-                                Already registered? <a href="index.html" data-bs-toggle="modal" data-bs-target="#loginModal" class="text-decoration-none">Login here</a>
+                                Already registered? <a href="index.html" class="text-decoration-none">Login here</a>
                             </p>
                         </div>
 
@@ -259,7 +198,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div id="videoContainer" class="mb-3" style="display: none;">
+                <div id="videoContainer" class="mb-3 register-hidden">
                     <video id="videoStream" autoplay playsinline></video>
                     <canvas id="canvas"></canvas>
                 </div>
@@ -270,60 +209,35 @@
                         <button type="button" class="btn btn-primary" id="useCameraBtn">
                             <i class="bi bi-camera-video"></i> Use Camera
                         </button>
-                        <button type="button" class="btn btn-outline-secondary" id="torchToggleBtn" style="display:none;">
+                        <button type="button" class="btn btn-outline-secondary register-hidden" id="torchToggleBtn">
                             <i class="bi bi-lightbulb"></i> Turn On Flash
                         </button>
                     </div>
                     <small id="lightingHint" class="text-muted d-block mt-2">Good lighting improves face detection. Move to a brighter area if detection fails.</small>
                 </div>
 
-                <div id="previewArea" class="text-center mb-3" style="display: none;">
+                <div id="previewArea" class="text-center mb-3 register-hidden">
                     <p class="fw-bold mb-2">Face Photo Preview:</p>
-                    <img id="previewImage" src="" style="max-width: 100%; max-height: 300px; border-radius: 8px;">
+                    <img id="previewImage" src="" alt="Captured face preview" class="face-preview-image">
                 </div>
 
                 <div id="verificationResult" class="text-center"></div>
-                <div id="detectionSpinner" class="spinner-border text-primary d-none" role="status" style="width:1.5rem;height:1.5rem;display:inline-block;margin-left:8px;vertical-align:middle;">
+                <div id="detectionSpinner" class="spinner-border text-primary d-none" role="status">
                     <span class="visually-hidden">Detecting...</span>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="capturePhotoBtn" style="display:none;">
+                <button type="button" class="btn btn-secondary" id="faceModalCloseBtn" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary register-hidden" id="capturePhotoBtn">
                     <i class="bi bi-camera"></i> Capture Photo
                 </button>
-                <button type="button" class="btn btn-success" id="confirmFaceBtn" style="display: none;">
+                <button type="button" class="btn btn-success register-hidden" id="confirmFaceBtn">
                     <i class="bi bi-check-circle"></i> Confirm Verification
                 </button>
             </div>
         </div>
     </div>
 </div>
-
-<!-- ID NUMBER CROP MODAL -->
-<div class="modal fade" id="idCropModal" tabindex="-1" aria-labelledby="idCropLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="idCropLabel">Crop ID Number</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted mb-2">Drag to select only the ID number area so we can read it clearly.</p>
-                <div class="border rounded" style="overflow:hidden;">
-                    <canvas id="idCropCanvas" style="width:100%;display:block;"></canvas>
-                </div>
-                <small class="text-muted d-block mt-2">Tip: focus on the number line only.</small>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-outline-secondary" id="idCropResetBtn">Reset</button>
-                <button type="button" class="btn btn-primary" id="idCropConfirmBtn">Use Crop</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 
 <!-- OTP VERIFICATION MODAL -->
 <div class="modal fade" id="otpVerificationModal" tabindex="-1" aria-labelledby="otpVerificationLabel" aria-hidden="true">
@@ -377,1577 +291,24 @@
     </div>
 </div>
 
+<!-- INVALID EMAIL TOAST -->
+<div id="invalidEmailToastContainer" class="toast-container position-fixed top-0 start-50 translate-middle-x mt-3">
+    <div id="invalidEmailToast" class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">Invalid email address</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- Leaflet JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
-<script>
-// --- Map initialization ---
-let map;
-let marker;
-const addressField = document.querySelector('textarea[name="address"]');
-
-function initMap() {
-    // Default location (Philippines center)
-    const defaultLat = 12.8797;
-    const defaultLng = 121.7740;
-    
-    map = L.map('mapContainer').setView([defaultLat, defaultLng], 13);
-    
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-    }).addTo(map);
-    
-    // Add draggable marker (will be positioned by geolocation)
-    marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
-    
-    // Update address when marker is dragged
-    marker.on('dragend', () => {
-        const latlng = marker.getLatLng();
-        getAddressFromCoordinates(latlng.lat, latlng.lng);
-    });
-    
-    // Also allow clicking on map to move marker
-    map.on('click', (e) => {
-        marker.setLatLng(e.latlng);
-        getAddressFromCoordinates(e.latlng.lat, e.latlng.lng);
-    });
-    
-    // Auto-detect user's location
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                
-                // Move map and marker to user's location
-                map.setView([lat, lng], 15);
-                marker.setLatLng([lat, lng]);
-                
-                // Auto-fill address
-                getAddressFromCoordinates(lat, lng);
-            },
-            (error) => {
-                console.log('Geolocation error:', error.message);
-                // If geolocation fails, use default location already set
-                getAddressFromCoordinates(defaultLat, defaultLng);
-            }
-        );
-    } else {
-        console.log('Geolocation not supported');
-        getAddressFromCoordinates(defaultLat, defaultLng);
-    }
-}
-
-function getAddressFromCoordinates(lat, lng) {
-    // Use server-side proxy to avoid CORS issues (see: auth/api/reverse-geocode.php)
-    const url = `auth/api/reverse-geocode.php?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
-
-    // Show temporary status while we lookup
-    addressField.value = 'Looking up address...';
-
-    // Abort previous request if any to avoid race conditions
-    if (window._reverseGeocodeAbort) {
-        try { window._reverseGeocodeAbort.abort(); } catch (e) {}
-    }
-    const ac = new AbortController();
-    window._reverseGeocodeAbort = ac;
-
-    const doFetch = () => {
-        return fetch(url, {
-            signal: ac.signal,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-App-Client': 'PatientRegistration'
-            }
-        })
-        .then(res => {
-            if (!res.ok) return res.json().then(err => { throw new Error(err.error || ('HTTP ' + res.status)); });
-            return res.json();
-        })
-        .then(data => {
-            if (!data) throw new Error('Empty response');
-            if (data.error) throw new Error(data.error);
-
-            // Build complete address from address components when available
-            const addr = data.address || {};
-            const parts = [];
-
-            if (addr.house_number && addr.road) {
-                parts.push(`${addr.house_number} ${addr.road}`);
-            } else if (addr.road) {
-                parts.push(addr.road);
-            }
-
-            if (addr.village) parts.push(addr.village);
-            if (addr.city_district) parts.push(addr.city_district);
-            if (addr.city) parts.push(addr.city);
-            if (addr.municipality) parts.push(addr.municipality);
-            if (addr.province) parts.push(addr.province);
-            if (addr.postcode) parts.push(addr.postcode);
-            if (addr.country) parts.push(addr.country);
-
-            const address = parts.length > 0 ? parts.join(', ') : (data.display_name || `Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-            addressField.value = address;
-            return true;
-        });
-    };
-
-    // Try once, then retry once after short delay on failure
-    doFetch().catch(err => {
-        console.error('Geocoding error (first attempt):', err);
-        setTimeout(() => {
-            doFetch().catch(err2 => {
-                console.error('Geocoding error (retry):', err2);
-                // Fallback to showing coordinates and asking user to verify
-                addressField.value = `Location detected (${lat.toFixed(4)}, ${lng.toFixed(4)}) - Please verify address`;
-            });
-        }, 700);
-    });
-}
-
-// Initialize map when page loads
-window.addEventListener('load', initMap);
-
-// --- Multi-step navigation ---
-const step1 = document.getElementById('step1');
-const step2 = document.getElementById('step2');
-const nextBtn = document.getElementById('nextBtn');
-const prevBtn = document.getElementById('prevBtn');
-const stepTabs = document.querySelectorAll('#stepTabs .nav-link');
-
-// Validate Step 1 fields and toggle Next button
-function validateStep1Fields() {
-    const firstName = document.querySelector('input[name="first_name"]').value.trim();
-    const lastName = document.querySelector('input[name="last_name"]').value.trim();
-    const birthdate = document.querySelector('input[name="birthdate"]').value;
-    const gender = document.querySelector('select[name="gender"]').value;
-    const email = document.querySelector('input[name="email"]').value.trim();
-    const contact = document.querySelector('input[name="contact_no"]').value.trim();
-    const address = document.querySelector('textarea[name="address"]').value.trim();
-
-    const addressValid = address && address !== 'Looking up address...' && !address.startsWith('Location detected');
-    const emailVerifiedFlag = (typeof verifiedEmail !== 'undefined' && verifiedEmail && verifiedEmail === email);
-
-    const valid = firstName && lastName && birthdate && gender && email && contact && addressValid && emailVerifiedFlag;
-    nextBtn.disabled = !valid;
-    return valid;
-}
-
-// Hook validation to inputs
-['input[name="first_name"]','input[name="last_name"]','input[name="birthdate"]','select[name="gender"]','input[name="email"]','input[name="contact_no"]','textarea[name="address"]'].forEach(selector => {
-    const el = document.querySelector(selector);
-    if (el) {
-        el.addEventListener('input', validateStep1Fields);
-    }
-});
-
-nextBtn.addEventListener('click', () => {
-    // Validate Step 1 required fields before allowing progress to Step 2
-    function showStepError(message) {
-        let alertDiv = document.getElementById('step1Error');
-        if (!alertDiv) {
-            alertDiv = document.createElement('div');
-            alertDiv.id = 'step1Error';
-            alertDiv.className = 'alert alert-danger mb-3';
-            const cardBody = document.querySelector('.card-body');
-            cardBody.insertBefore(alertDiv, cardBody.firstChild);
-        }
-        alertDiv.textContent = message;
-        // Auto-dismiss after 5s
-        setTimeout(() => { if (alertDiv && alertDiv.parentNode) alertDiv.parentNode.removeChild(alertDiv); }, 5000);
-    }
-
-    const firstName = document.querySelector('input[name="first_name"]').value.trim();
-    const lastName = document.querySelector('input[name="last_name"]').value.trim();
-    const birthdate = document.querySelector('input[name="birthdate"]').value;
-    const gender = document.querySelector('select[name="gender"]').value;
-    const email = document.querySelector('input[name="email"]').value.trim();
-    const contact = document.querySelector('input[name="contact_no"]').value.trim();
-    const address = document.querySelector('textarea[name="address"]').value.trim();
-
-    if (!firstName) { showStepError('Please enter First Name'); document.querySelector('input[name="first_name"]').focus(); return; }
-    if (!lastName) { showStepError('Please enter Last Name'); document.querySelector('input[name="last_name"]').focus(); return; }
-    if (!birthdate) { showStepError('Please enter Birthdate'); document.querySelector('input[name="birthdate"]').focus(); return; }
-    if (!gender) { showStepError('Please select Gender'); document.querySelector('select[name="gender"]').focus(); return; }
-    if (!email) { showStepError('Please enter Email'); document.querySelector('input[name="email"]').focus(); return; }
-    if (!contact) { showStepError('Please enter Contact Number'); document.querySelector('input[name="contact_no"]').focus(); return; }
-    if (!address || address === 'Looking up address...' || address.startsWith('Location detected')) {
-        showStepError('Please set a valid address by dragging the pin or clicking the map');
-        return;
-    }
-
-    // Ensure email has been verified using OTP flow
-    if (typeof verifiedEmail === 'undefined' || !verifiedEmail || verifiedEmail !== email) {
-        showStepError('Please verify your email before continuing');
-        return;
-    }
-
-    // Clear any previous step error and proceed
-    const old = document.getElementById('step1Error'); if (old) old.remove();
-
-    step1.classList.add('d-none');
-    step2.classList.remove('d-none');
-    stepTabs[0].classList.remove('active');
-    stepTabs[1].classList.remove('disabled');
-    stepTabs[1].classList.add('active');
-});
-
-prevBtn.addEventListener('click', () => {
-    step2.classList.add('d-none');
-    step1.classList.remove('d-none');
-    stepTabs[1].classList.remove('active');
-    stepTabs[1].classList.add('disabled');
-    stepTabs[0].classList.add('active');
-});
-
-// --- ID validation ---
-const idNumber = document.getElementById('idNumber');
-const idType = document.getElementById('idType');
-const idFile = document.getElementById('idFile');
-const idError = document.getElementById('idError');
-const fileError = document.getElementById('fileError');
-const fileNote = document.getElementById('fileNote');
-const passwordInput = document.querySelector('input[name="password"]');
-const confirmPasswordInput = document.querySelector('input[name="confirm_password"]');
-const passwordError = document.getElementById('passwordError');
-const confirmPasswordError = document.getElementById('confirmPasswordError');
-let idCropDataUrl = null;
-let idCropImage = null;
-let idCropRect = null;
-let idCropDragging = false;
-let idCropStart = null;
-let idCropScale = 1;
-let idCropReady = false;
-
-const idCropModalEl = document.getElementById('idCropModal');
-const idCropCanvas = document.getElementById('idCropCanvas');
-const idCropCtx = idCropCanvas ? idCropCanvas.getContext('2d', { willReadFrequently: true }) : null;
-const idCropConfirmBtn = document.getElementById('idCropConfirmBtn');
-const idCropResetBtn = document.getElementById('idCropResetBtn');
-
-const idRules = {
-    passport: /^[A-Z0-9]{6,9}$/i,
-    drivers: /^[A-Z0-9\-]{5,20}$/i,
-    national: /^\d{10,16}$/,
-    philhealth: /^\d{12,14}$/,
-    sss: /^\d{10,12}$/
-};
-
-function drawIdCropCanvas() {
-    if (!idCropCanvas || !idCropCtx || !idCropImage) return;
-    const maxWidth = idCropCanvas.parentElement ? idCropCanvas.parentElement.clientWidth : 600;
-    const targetWidth = Math.min(900, Math.max(320, maxWidth));
-    const scale = idCropImage.width / targetWidth;
-    idCropScale = scale;
-    idCropCanvas.width = targetWidth;
-    idCropCanvas.height = Math.round(idCropImage.height / scale);
-
-    idCropCtx.clearRect(0, 0, idCropCanvas.width, idCropCanvas.height);
-    idCropCtx.drawImage(idCropImage, 0, 0, idCropCanvas.width, idCropCanvas.height);
-
-    if (idCropRect) {
-        idCropCtx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-        idCropCtx.fillRect(0, 0, idCropCanvas.width, idCropCanvas.height);
-        // Redraw the image only in the crop area so it isn't cleared to transparent.
-        idCropCtx.drawImage(
-            idCropImage,
-            idCropRect.x * idCropScale,
-            idCropRect.y * idCropScale,
-            idCropRect.w * idCropScale,
-            idCropRect.h * idCropScale,
-            idCropRect.x,
-            idCropRect.y,
-            idCropRect.w,
-            idCropRect.h
-        );
-        idCropCtx.strokeStyle = '#00c853';
-        idCropCtx.lineWidth = 2;
-        idCropCtx.strokeRect(idCropRect.x, idCropRect.y, idCropRect.w, idCropRect.h);
-    }
-}
-
-function openIdCropModal(dataUrl) {
-    if (!idCropModalEl || !idCropCanvas || !idCropCtx) return;
-    idCropRect = null;
-    idCropDataUrl = null;
-    idCropReady = false;
-    idCropImage = new Image();
-    idCropImage.onload = () => {
-        idCropReady = true;
-        const modal = bootstrap.Modal.getOrCreateInstance(idCropModalEl);
-        modal.show();
-    };
-    idCropImage.src = dataUrl;
-}
-
-if (idCropModalEl) {
-    idCropModalEl.addEventListener('shown.bs.modal', () => {
-        if (idCropReady) {
-            // Ensure layout is finalized before measuring width and drawing.
-            requestAnimationFrame(() => drawIdCropCanvas());
-        }
-    });
-}
-
-if (idCropCanvas) {
-    idCropCanvas.addEventListener('pointerdown', (e) => {
-        const rect = idCropCanvas.getBoundingClientRect();
-        idCropDragging = true;
-        idCropStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-        idCropRect = { x: idCropStart.x, y: idCropStart.y, w: 0, h: 0 };
-        drawIdCropCanvas();
-    });
-    idCropCanvas.addEventListener('pointermove', (e) => {
-        if (!idCropDragging || !idCropStart) return;
-        const rect = idCropCanvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        idCropRect = {
-            x: Math.min(idCropStart.x, x),
-            y: Math.min(idCropStart.y, y),
-            w: Math.abs(x - idCropStart.x),
-            h: Math.abs(y - idCropStart.y)
-        };
-        drawIdCropCanvas();
-    });
-    idCropCanvas.addEventListener('pointerup', () => {
-        idCropDragging = false;
-    });
-    idCropCanvas.addEventListener('pointerleave', () => {
-        idCropDragging = false;
-    });
-}
-
-if (idCropResetBtn) {
-    idCropResetBtn.addEventListener('click', () => {
-        idCropRect = null;
-        drawIdCropCanvas();
-    });
-}
-
-if (idCropConfirmBtn) {
-    idCropConfirmBtn.addEventListener('click', () => {
-        if (!idCropRect || idCropRect.w < 30 || idCropRect.h < 15) {
-            if (fileNote) {
-                fileNote.textContent = 'Please select the ID number area before continuing.';
-                fileNote.classList.remove('d-none');
-            }
-            return;
-        }
-        const cropCanvas = document.createElement('canvas');
-        const srcX = Math.round(idCropRect.x * idCropScale);
-        const srcY = Math.round(idCropRect.y * idCropScale);
-        const srcW = Math.round(idCropRect.w * idCropScale);
-        const srcH = Math.round(idCropRect.h * idCropScale);
-        cropCanvas.width = Math.max(1, srcW);
-        cropCanvas.height = Math.max(1, srcH);
-        const cropCtx = cropCanvas.getContext('2d');
-        if (!idCropImage) return;
-        cropCtx.drawImage(idCropImage, srcX, srcY, srcW, srcH, 0, 0, cropCanvas.width, cropCanvas.height);
-        idCropDataUrl = cropCanvas.toDataURL('image/jpeg', 0.9);
-        if (fileNote) {
-            fileNote.textContent = 'ID number crop saved.';
-            fileNote.classList.remove('d-none');
-        }
-        const modal = bootstrap.Modal.getOrCreateInstance(idCropModalEl);
-        modal.hide();
-    });
-}
-
-
-function validatePasswordStrength() {
-    if (!passwordInput) return true;
-    const value = passwordInput.value || '';
-    const upper = (value.match(/[A-Z]/g) || []).length;
-    const lower = (value.match(/[a-z]/g) || []).length;
-    const number = (value.match(/[0-9]/g) || []).length;
-    const special = (value.match(/[^A-Za-z0-9]/g) || []).length;
-
-    const valid = value.length >= 8 && upper >= 2 && lower >= 1 && number >= 1 && special >= 1;
-    if (!valid && value.length > 0) {
-        passwordInput.classList.add('is-invalid');
-        if (passwordError) passwordError.classList.remove('d-none');
-    } else {
-        passwordInput.classList.remove('is-invalid');
-        if (passwordError) passwordError.classList.add('d-none');
-    }
-    return valid;
-}
-
-function validatePasswordMatch() {
-    if (!confirmPasswordInput) return true;
-    const match = confirmPasswordInput.value === (passwordInput ? passwordInput.value : '');
-    if (!match && confirmPasswordInput.value.length > 0) {
-        confirmPasswordInput.classList.add('is-invalid');
-        if (confirmPasswordError) confirmPasswordError.classList.remove('d-none');
-    } else {
-        confirmPasswordInput.classList.remove('is-invalid');
-        if (confirmPasswordError) confirmPasswordError.classList.add('d-none');
-    }
-    return match;
-}
-
-if (passwordInput) {
-    passwordInput.addEventListener('input', () => {
-        validatePasswordStrength();
-        validatePasswordMatch();
-    });
-}
-if (confirmPasswordInput) {
-    confirmPasswordInput.addEventListener('input', validatePasswordMatch);
-}
-
-idNumber.addEventListener('input', () => {
-    const type = idType.value;
-    let value = idNumber.value.trim();
-
-    const normalizers = {
-        passport: v => v.replace(/\s+/g, ''),
-        drivers: v => v.replace(/[^A-Z0-9\-]/gi, ''),
-        national: v => v.replace(/\D/g, ''),
-        philhealth: v => v.replace(/\D/g, ''),
-        sss: v => v.replace(/\D/g, '')
-    };
-
-    const normalize = normalizers[type] || (v => v);
-    const normalized = normalize(value);
-
-    // For numeric IDs, update the input to remove spaces/dashes for clarity
-    if (['national', 'philhealth', 'sss'].includes(type)) {
-        if (idNumber.value !== normalized) {
-            idNumber.value = normalized;
-            value = normalized;
-        }
-    }
-
-    // Provide clearer error messages for each type (keep messages consistent with server validation)
-    const errorMessages = {
-        passport: 'Passport should be 6-9 letters/numbers',
-        drivers: "Driver's License should be 5-20 characters (letters, numbers, dashes)",
-        national: 'National/PhilSys ID should be 10-16 digits',
-        philhealth: 'PhilHealth ID should be 12-14 digits',
-        sss: 'SSS ID should be 10-12 digits'
-    };
-
-    if (!type || !idRules[type]?.test(normalized)) {
-        idError.classList.remove('d-none');
-        idNumber.classList.add('is-invalid');
-        idError.textContent = errorMessages[type] || 'Invalid ID number format';
-    } else {
-        idError.classList.add('d-none');
-        idNumber.classList.remove('is-invalid');
-        idError.textContent = 'Invalid ID number format';
-    }
-});
-
-// Helper for showing expected ID formats
-function updateIdFormatHelp() {
-    const help = document.getElementById('idFormatHelp');
-    if (!help) return;
-    const type = idType.value;
-    const examples = {
-        passport: 'Passport: 6-9 letters/numbers (e.g., A1234567).',
-        drivers: "Driver\'s License: 5-20 characters (letters, numbers, dashes).",
-        national: 'National/PhilSys: 10-16 digits (numbers only).',
-        philhealth: 'PhilHealth: 12-14 digits (numbers only).',
-        sss: 'SSS: 10-12 digits (numbers only).'
-    };
-    help.textContent = examples[type] || 'Select an ID type to see the expected format.';
-}
-
-// Re-validate when the ID type changes and update helper text
-idType.addEventListener('change', () => {
-    idNumber.dispatchEvent(new Event('input'));
-    updateIdFormatHelp();
-});
-
-// Set initial helper text on load
-updateIdFormatHelp();
-
-idFile.addEventListener('click', () => {
-    // Ensure re-selecting the same file still triggers a change event.
-    idFile.value = '';
-    idCropDataUrl = null;
-    idCropRect = null;
-    if (fileNote) fileNote.classList.add('d-none');
-});
-
-idFile.addEventListener('change', () => {
-    const file = idFile.files[0];
-    const maxSize = 5 * 1024 * 1024;
-    const setIdFileError = (message) => {
-        if (fileError) {
-            fileError.textContent = message;
-            fileError.classList.remove('d-none');
-        }
-        if (fileNote) fileNote.classList.add('d-none');
-        idFile.classList.add('is-invalid');
-        idFile.dataset.qualityOk = '0';
-    };
-    const clearIdFileMessages = () => {
-        if (fileError) fileError.classList.add('d-none');
-        if (fileNote) fileNote.classList.add('d-none');
-        idFile.classList.remove('is-invalid');
-        idFile.dataset.qualityOk = '1';
-    };
-    const setIdFileNote = (message) => {
-        if (fileNote) {
-            fileNote.textContent = message;
-            fileNote.classList.remove('d-none');
-        }
-    };
-
-    idCropDataUrl = null;
-    idCropRect = null;
-    if (!file || file.size > maxSize || !file.type.match(/(image|pdf)/)) {
-        setIdFileError('Invalid file (JPG, PNG, PDF only / max 5MB)');
-        idFile.value = '';
-        return;
-    }
-
-    clearIdFileMessages();
-
-    if (file.type === 'application/pdf') {
-        setIdFileNote('PDF uploaded. Please ensure the ID is clear; face quality cannot be checked.');
-        idFile.dataset.qualityOk = '1';
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const targetW = 360;
-            const scale = img.width / targetW;
-            canvas.width = targetW;
-            canvas.height = Math.round(img.height / scale);
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-            const blurScore = (() => {
-                const w = canvas.width;
-                const h = canvas.height;
-                const data = ctx.getImageData(0, 0, w, h).data;
-                const gray = new Float32Array(w * h);
-                for (let i = 0, j = 0; i < data.length; i += 4, j++) {
-                    gray[j] = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
-                }
-                let sum = 0;
-                let sumSq = 0;
-                let count = 0;
-                for (let y = 1; y < h - 1; y++) {
-                    for (let x = 1; x < w - 1; x++) {
-                        const idx = y * w + x;
-                        const lap = (-4 * gray[idx]) + gray[idx - 1] + gray[idx + 1] + gray[idx - w] + gray[idx + w];
-                        sum += lap;
-                        sumSq += lap * lap;
-                        count++;
-                    }
-                }
-                const mean = sum / (count || 1);
-                return (sumSq / (count || 1)) - (mean * mean);
-            })();
-
-            const brightness = getAverageBrightness(canvas);
-            if (blurScore < 50 || brightness < 40) {
-                setIdFileError('Image looks blurry or too dark. Please upload a clearer ID photo.');
-                return;
-            }
-
-            clearIdFileMessages();
-            openIdCropModal(e.target.result);
-        };
-        img.onerror = () => setIdFileError('Could not read the ID image. Please upload a clearer photo.');
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-});
-
-// --- Form submission with fetch ---
-const patientForm = document.getElementById('patientForm');
-const postRegisterModalEl = document.getElementById('postRegisterModal');
-const postRegisterMessage = document.getElementById('postRegisterMessage');
-const proceedLoginBtn = document.getElementById('proceedLoginBtn');
-const registerAnotherBtn = document.getElementById('registerAnotherBtn');
-
-function showPostRegisterModal(message) {
-    if (postRegisterMessage) {
-        postRegisterMessage.textContent = message || 'Your account has been created.';
-    }
-    if (!postRegisterModalEl) return;
-    const modal = bootstrap.Modal.getOrCreateInstance(postRegisterModalEl);
-    modal.show();
-}
-
-if (proceedLoginBtn) {
-    proceedLoginBtn.addEventListener('click', () => {
-        window.location.href = 'index.html?showLogin=1';
-    });
-}
-
-if (registerAnotherBtn) {
-    registerAnotherBtn.addEventListener('click', () => {
-        resetRegistrationFormState();
-        if (postRegisterModalEl) {
-            const modal = bootstrap.Modal.getInstance(postRegisterModalEl) || bootstrap.Modal.getOrCreateInstance(postRegisterModalEl);
-            modal.hide();
-        }
-    });
-}
-
-patientForm.addEventListener('submit', e => {
-    e.preventDefault();
-
-    const passOk = validatePasswordStrength();
-    const matchOk = validatePasswordMatch();
-    if (!passOk || !matchOk) {
-        alert('Please fix the password requirements before submitting.');
-        return;
-    }
-
-    if (idNumber.classList.contains('is-invalid') || idFile.classList.contains('is-invalid') || !idType.value) {
-        alert('Please provide a valid ID before submitting.');
-        return;
-    }
-
-    if (idFile && idFile.files && idFile.files[0] && idFile.files[0].type !== 'application/pdf' && !idCropDataUrl) {
-        alert('Please crop the ID number area before submitting.');
-        if (fileNote) {
-            fileNote.textContent = 'Please use the crop tool to select the ID number area.';
-            fileNote.classList.remove('d-none');
-        }
-        return;
-    }
-
-    // Check face verification status
-    if (!window.faceVerificationComplete) {
-        alert('Please complete face verification before registering.');
-        return;
-    }
-
-    const formData = new FormData(patientForm);
-    if (idCropDataUrl) {
-        formData.append('id_crop', idCropDataUrl);
-    }
-
-    // Use a root-absolute API path to avoid relative-path 404s when served from nested pages
-    fetch('/THESIS/LYINGIN/auth/api/register-patient.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(async res => {
-        const text = await res.text();
-        try {
-            const data = JSON.parse(text);
-            if (!res.ok) throw data;
-            return data;
-        } catch (e) {
-            console.error('Non-JSON response from server:', text);
-            throw { status: 'error', message: 'Server returned an unexpected response. Check console for details.', raw: text, statusCode: res.status };
-        }
-    })
-    .then(data => {
-        if (data.status === 'success') {
-            showPostRegisterModal(data.message || 'Registration successful.');
-        } else {
-            alert(data.message || 'Registration failed. Please try again.');
-        }
-    })
-    .catch(err => {
-        console.error('Registration Error:', err);
-        const message = (err && err.message) ? err.message : 'An unexpected error occurred. Check console for details.';
-        alert(message);
-        if (err && err.raw) console.log('Server response (raw):', err.raw);
-    });
-});
-
-// ===== FACE VERIFICATION SYSTEM =====
-window.faceVerificationComplete = false;
-let capturedFaceImage = null;
-let capturedFaceDescriptor = null;
-let firstLiveDescriptor = null;
-let secondLiveDescriptor = null;
-let idPhotoDescriptor = null;
-let modelsLoaded = false;
-let faceMatchMeta = null;
-
-const useCameraBtn = document.getElementById('useCameraBtn');
-const capturePhotoBtn = document.getElementById('capturePhotoBtn');
-const previewImage = document.getElementById('previewImage');
-const previewArea = document.getElementById('previewArea');
-const verificationResult = document.getElementById('verificationResult');
-const confirmFaceBtn = document.getElementById('confirmFaceBtn');
-const videoStream = document.getElementById('videoStream');
-const videoContainer = document.getElementById('videoContainer');
-const faceVerificationStatus = document.getElementById('faceVerificationStatus');
-let cameraStream = null;
-let videoTrack = null;
-let imageCapture = null;
-let lightingInterval = null;
-let torchOn = false;
-
-// Load face-api models
-async function loadFaceModels() {
-    if (modelsLoaded) return;
-    
-    try {
-        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
-        
-        // Load both Tiny and SSD detection models if available (Tiny is faster)
-        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-        try { await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL); } catch (e) { /* SSD not available, fallback to Tiny */ }
-        await Promise.all([
-            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-            faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
-        ]);
-        
-        modelsLoaded = true;
-        console.log('Face API models loaded successfully');
-    } catch (error) {
-        console.error('Error loading face models:', error);
-        showVerificationStatus('Error loading face detection models. Please try again.', 'error');
-    }
-}
-
-// Extract face descriptor and landmarks from image
-async function extractFaceData(image) {
-    const start = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-    try {
-        // Try TinyFaceDetector first for speed, fallback to default detector if needed
-        let detection = null;
-        try {
-            detection = await faceapi.detectSingleFace(image, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 })).withFaceLandmarks().withFaceDescriptor();
-        } catch (e) {
-            // Tiny may not be available; fallback
-            detection = await faceapi.detectSingleFace(image).withFaceLandmarks().withFaceDescriptor();
-        }
-
-        const elapsed = Math.round(((typeof performance !== 'undefined') ? performance.now() : Date.now()) - start);
-
-        if (!detection) {
-            throw new Error('No face detected in image');
-        }
-
-        // detection.detection.score contains confidence for SSD/Tiny
-        const score = detection.detection && typeof detection.detection.score === 'number' ? detection.detection.score : (detection.score || 0);
-        window.lastDetectionTimeMs = elapsed;
-        window.lastDetectionScore = score;
-
-        // If confidence low, ask user to try again with better conditions
-        const MIN_CONFIDENCE = 0.6;
-        if (score < MIN_CONFIDENCE) {
-            throw new Error(`Low detection confidence (${Math.round(score*100)}%). Try removing sunglasses, cleaning lens, improving lighting, or moving closer.`);
-        }
-
-        return {
-            descriptor: detection.descriptor,
-            landmarks: detection.landmarks,
-            score,
-            elapsed
-        };
-    } catch (error) {
-        throw new Error(`Face detection failed: ${error.message}`);
-    }
-}
-
-// Calculate Euclidean distance between two descriptors
-function calculateDistance(descriptor1, descriptor2) {
-    if (!descriptor1 || !descriptor2) return Infinity;
-    let sum = 0;
-    for (let i = 0; i < descriptor1.length; i++) {
-        sum += Math.pow(descriptor1[i] - descriptor2[i], 2);
-    }
-    return Math.sqrt(sum);
-}
-
-// Show verification status
-function showVerificationStatus(message, type = 'info') {
-    const statusDiv = document.createElement('div');
-    statusDiv.className = `verification-status status-${type}`;
-    statusDiv.textContent = message;
-    verificationResult.innerHTML = '';
-    verificationResult.appendChild(statusDiv);
-}
-
-// Compute average brightness from a canvas (center region)
-function getAverageBrightness(canvas) {
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    const w = Math.max(10, Math.round(canvas.width * 0.15));
-    const h = Math.max(10, Math.round(canvas.height * 0.15));
-    const sx = Math.round((canvas.width - w) / 2);
-    const sy = Math.round((canvas.height - h) / 2);
-    try {
-        const imageData = ctx.getImageData(sx, sy, w, h).data;
-        let total = 0, count = 0;
-        for (let i = 0; i < imageData.length; i += 4) {
-            const r = imageData[i], g = imageData[i+1], b = imageData[i+2];
-            const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-            total += lum; count++;
-        }
-        return total / count;
-    } catch (e) {
-        return 255; // can't sample yet
-    }
-}
-
-// Periodically check lighting and disable capture if too dark
-function checkLighting() {
-    if (!videoStream || videoStream.readyState < 2) return;
-    const temp = document.createElement('canvas');
-    const vw = videoStream.videoWidth || 320;
-    const vh = videoStream.videoHeight || 240;
-    const w = Math.max(30, Math.round(vw * 0.2));
-    const h = Math.max(30, Math.round(vh * 0.2));
-    temp.width = w; temp.height = h;
-    const ctx = temp.getContext('2d', { willReadFrequently: true });
-    try {
-        ctx.drawImage(videoStream, Math.round((vw-w)/2), Math.round((vh-h)/2), w, h, 0, 0, w, h);
-        const avg = getAverageBrightness(temp);
-        const hint = document.getElementById('lightingHint');
-        if (avg < 50) {
-            hint.textContent = 'Low light detected. Please improve lighting or enable flash.';
-            capturePhotoBtn.disabled = true;
-        } else {
-            hint.textContent = 'Lighting looks good.';
-            capturePhotoBtn.disabled = false;
-        }
-    } catch (e) {}
-}
-
-// Toggle device torch (if supported)
-async function toggleTorch() {
-    if (!videoTrack || !videoTrack.applyConstraints) return;
-    torchOn = !torchOn;
-    try {
-        await videoTrack.applyConstraints({ advanced: [{ torch: torchOn }] });
-        const btn = document.getElementById('torchToggleBtn');
-        btn.innerHTML = torchOn ? '<i class="bi bi-lightbulb-fill"></i> Flash On' : '<i class="bi bi-lightbulb"></i> Turn On Flash';
-    } catch (err) {
-        console.warn('Torch toggle failed:', err);
-    }
-}
-
-// Simple canvas enhancement: adjust brightness towards a target and add slight contrast
-function enhanceCanvas(canvas) {
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imgData.data;
-    let sum = 0;
-    for (let i = 0; i < data.length; i += 4) {
-        sum += (0.2126 * data[i] + 0.7152 * data[i+1] + 0.0722 * data[i+2]);
-    }
-    const avg = sum / (data.length / 4 || 1);
-    const target = 110;
-    const adjust = target / (avg || 1);
-    const contrast = 1.05;
-
-    for (let i = 0; i < data.length; i += 4) {
-        data[i] = Math.min(255, Math.max(0, ((data[i] - 128) * contrast + 128) * adjust));
-        data[i+1] = Math.min(255, Math.max(0, ((data[i+1] - 128) * contrast + 128) * adjust));
-        data[i+2] = Math.min(255, Math.max(0, ((data[i+2] - 128) * contrast + 128) * adjust));
-    }
-    ctx.putImageData(imgData, 0, 0);
-}
-
-// Show face verification status
-function showFaceVerificationStatus(message, type = 'info') {
-    const statusDiv = document.getElementById('faceVerificationStatus');
-    statusDiv.innerHTML = `<div class="alert alert-${type} mb-0 small">${message}</div>`;
-}
-
-
-// Update face verification UI
-function updateFaceVerificationUI() {
-    const statusDiv = document.getElementById('faceVerificationStatus');
-    
-    if (window.faceVerificationComplete) {
-        statusDiv.innerHTML = '<div class="verification-status status-success"><i class="bi bi-check-circle"></i> Face verification complete!</div>';
-    } else {
-        statusDiv.innerHTML = '';
-    }
-}
-
-// Camera flow
-useCameraBtn.addEventListener('click', startCamera);
-
-async function startCamera() {
-    try {
-        await loadFaceModels();
-        videoContainer.style.display = 'block';
-        previewArea.style.display = 'none';
-        showVerificationStatus('Starting camera...', 'info');
-
-        // Prefer a good resolution for face detection; the browser will use supported constraints
-        const constraints = { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }, audio: false };
-        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
-        videoStream.srcObject = cameraStream;
-        videoStream.play();
-
-        // Ensure we only enable capture after metadata is available
-        capturePhotoBtn.disabled = true;
-        const onReady = () => {
-            capturePhotoBtn.disabled = false;
-            showVerificationStatus('Camera ready. Position your face and press Capture.', 'info');
-            videoStream.removeEventListener('loadedmetadata', onReady);
-        };
-        videoStream.addEventListener('loadedmetadata', onReady);
-
-        // Setup track and ImageCapture if available
-        videoTrack = cameraStream.getVideoTracks()[0];
-        try { imageCapture = (typeof ImageCapture !== 'undefined' && videoTrack) ? new ImageCapture(videoTrack) : null; } catch (e) { imageCapture = null; }
-
-        // Torch support
-        const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
-        const torchBtn = document.getElementById('torchToggleBtn');
-        if (capabilities.torch) {
-            torchBtn.style.display = 'inline-block';
-            torchBtn.onclick = toggleTorch;
-        } else {
-            torchBtn.style.display = 'none';
-        }
-
-        // Start periodic lighting check to advise user
-        lightingInterval = setInterval(checkLighting, 600);
-
-        // Ensure capture button is visible and enabled
-        capturePhotoBtn.style.display = 'inline-block';
-    } catch (error) {
-        console.error('Camera error:', error);
-        showVerificationStatus('Unable to access camera. Please allow camera access or use a supported device.', 'error');
-    }
-} 
-
-function stopCamera() {
-    if (lightingInterval) { clearInterval(lightingInterval); lightingInterval = null; }
-    if (cameraStream) {
-        cameraStream.getTracks().forEach(t => t.stop());
-        cameraStream = null;
-    }
-    // turn off torch if active
-    if (torchOn && videoTrack && videoTrack.applyConstraints) {
-        try { videoTrack.applyConstraints({ advanced: [{ torch: false }] }); } catch (e) {}
-        torchOn = false;
-    }
-    imageCapture = null;
-    videoTrack = null;
-    videoStream.srcObject = null;
-    videoContainer.style.display = 'none';
-    capturePhotoBtn.style.display = 'none';
-    const torchBtn = document.getElementById('torchToggleBtn'); if (torchBtn) torchBtn.style.display = 'none';
-
-    // Ensure spinner hidden
-    hideDetectionSpinner();
-}
-
-function showDetectionSpinner() {
-    const s = document.getElementById('detectionSpinner'); if (s) s.classList.remove('d-none');
-}
-function hideDetectionSpinner() {
-    const s = document.getElementById('detectionSpinner'); if (s) s.classList.add('d-none');
-} 
-
-capturePhotoBtn.addEventListener('click', async () => {
-    try {
-        // Freeze and capture frame
-        showVerificationStatus('Capturing photo...', 'info');
-        capturePhotoBtn.disabled = true;
-
-        if (!videoStream || videoStream.readyState < 2 || !videoStream.videoWidth || !videoStream.videoHeight) {
-            showVerificationStatus('Camera not ready yet. Please wait a moment and try again.', 'error');
-            capturePhotoBtn.disabled = false;
-            return;
-        }
-
-        const canvas = document.getElementById('canvas');
-        // Downscale for faster detection (target width)
-        const targetWidth = 320;
-        const videoWidth = videoStream.videoWidth || 640;
-        const videoHeight = videoStream.videoHeight || 480;
-        const scale = videoWidth / targetWidth;
-        canvas.width = targetWidth;
-        canvas.height = Math.round(videoHeight / scale);
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(videoStream, 0, 0, canvas.width, canvas.height);
-
-        // Quick brightness check and enhancement
-        const avg = getAverageBrightness(canvas);
-        if (avg < 50) {
-            showVerificationStatus('Lighting too low. Please increase lighting or enable flash.', 'error');
-            capturePhotoBtn.disabled = false;
-            // restart camera to allow the user to adjust
-            startCamera();
-            return;
-        }
-
-        // Apply simple enhancement to improve detection in suboptimal lighting
-        enhanceCanvas(canvas);
-
-        const dataUrl = canvas.toDataURL('image/jpeg');
-        // Show preview (frozen frame) but keep camera running for retries
-        previewImage.src = dataUrl;
-        previewArea.style.display = 'block';
-        videoContainer.style.display = 'none';
-
-        // Run face detection on a smaller frame to speed up processing
-        const img = new Image();
-        img.onload = async () => {
-            try {
-                showVerificationStatus('Detecting face...', 'info');
-                showDetectionSpinner();
-                const faceData = await extractFaceData(img);
-                hideDetectionSpinner();
-                capturedFaceDescriptor = faceData.descriptor;
-                capturedFaceImage = img;
-
-                // Show detection metrics
-                if (window.lastDetectionTimeMs !== undefined && window.lastDetectionScore !== undefined) {
-                    showVerificationStatus(`Face detected (score: ${Math.round(window.lastDetectionScore*100)}%, ${window.lastDetectionTimeMs} ms)`, 'success');
-                } else {
-                    showVerificationStatus('Face detected', 'success');
-                }
-
-                if (!firstLiveDescriptor) {
-                    firstLiveDescriptor = capturedFaceDescriptor;
-                    showVerificationStatus('First capture complete. Please capture a second live photo.', 'info');
-                    confirmFaceBtn.style.display = 'none';
-                    previewArea.style.display = 'none';
-                    videoContainer.style.display = 'block';
-                    return;
-                }
-
-                secondLiveDescriptor = capturedFaceDescriptor;
-                // Two captures complete; proceed to face comparison
-
-                // Compare with ID photo if available
-                if (idPhotoDescriptor) {
-                    compareFaces();
-                } else {
-                    confirmFaceBtn.style.display = 'none';
-                }
-            } catch (err) {
-                hideDetectionSpinner();
-                showVerificationStatus(err.message, 'error');
-                // allow retry: re-enable capture and restart camera
-                capturePhotoBtn.disabled = false;
-                previewArea.style.display = 'none';
-                videoContainer.style.display = 'block';
-            }
-        };
-        img.src = dataUrl;
-    } catch (err) {
-        console.error('Capture error:', err);
-        showVerificationStatus('Error capturing photo. Please try again.', 'error');
-        capturePhotoBtn.disabled = false;
-    }
-});
-
-// Stop camera when modal closes
-document.getElementById('faceVerificationModal').addEventListener('hidden.bs.modal', stopCamera);
-
-// Handle ID photo for comparison
-idFile.addEventListener('change', async (event) => {
-    const file = event.target.files[0];
-    
-    if (!file) return;
-    if (idFile.dataset.qualityOk === '0') {
-        idPhotoDescriptor = null;
-        return;
-    }
-    
-    // If it's a PDF, we can't extract face from it
-    if (file.type === 'application/pdf') {
-        console.log('PDF uploaded - Face comparison will be done manually');
-        idPhotoDescriptor = null;
-        return;
-    }
-    
-    try {
-        await loadFaceModels();
-        
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const img = new Image();
-            img.onload = async () => {
-                try {
-                    const faceData = await extractFaceData(img);
-                    idPhotoDescriptor = faceData.descriptor;
-                    console.log('ID face extracted successfully');
-                    
-                    // If we already have a captured face, compare them
-                    if (capturedFaceDescriptor) {
-                        compareFaces();
-                    }
-                } catch (error) {
-                    console.log('Could not extract face from ID photo:', error.message);
-                    idPhotoDescriptor = null;
-                    if (fileError) {
-                        fileError.textContent = 'Could not detect a face on the ID. Please upload a clearer ID with your face visible.';
-                        fileError.classList.remove('d-none');
-                        idFile.classList.add('is-invalid');
-                    }
-                }
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    } catch (error) {
-        console.error('Error processing ID photo:', error);
-    }
-});
-
-// Compare captured face with ID photo using Euclidean distance (lower is better)
-function compareFaces() {
-    if (!firstLiveDescriptor || !secondLiveDescriptor || !idPhotoDescriptor) {
-        showVerificationStatus('Both face photo and ID are required for verification.', 'error');
-        confirmFaceBtn.style.display = 'none';
-        return;
-    }
-
-    const thresholdDistance = 0.5; // stricter threshold for higher security
-    const selfMatchThreshold = 0.45; // ensure two live captures are consistent
-    const distance1 = calculateDistance(firstLiveDescriptor, idPhotoDescriptor);
-    const distance2 = calculateDistance(secondLiveDescriptor, idPhotoDescriptor);
-    const liveDistance = calculateDistance(firstLiveDescriptor, secondLiveDescriptor);
-    const isMatching = distance1 <= thresholdDistance && distance2 <= thresholdDistance && liveDistance <= selfMatchThreshold;
-
-    // Debugging info
-    console.log('Face distance 1:', distance1, 'distance 2:', distance2, 'live distance:', liveDistance, 'threshold:', thresholdDistance);
-
-    if (isMatching) {
-        const matchPercent = Math.max(0, Math.round((1 - (Math.max(distance1, distance2) / thresholdDistance)) * 100));
-        faceMatchMeta = {
-            live1: Array.from(firstLiveDescriptor),
-            live2: Array.from(secondLiveDescriptor),
-            id: Array.from(idPhotoDescriptor),
-            d1: distance1,
-            d2: distance2,
-            dlive: liveDistance
-        };
-        showVerificationStatus(
-            `✓ Face Match Verified! (distance: ${Math.max(distance1, distance2).toFixed(3)} — approx ${matchPercent}% confidence) Your face matches your ID.`,
-            'success'
-        );
-        confirmFaceBtn.style.display = 'inline-block';
-    } else {
-        faceMatchMeta = null;
-        const worst = Math.max(distance1, distance2, liveDistance);
-        const matchPercent = Math.max(0, Math.round((1 - (worst / (thresholdDistance*2))) * 100));
-        showVerificationStatus(
-            `✗ Face Match Failed (distance: ${worst.toFixed(3)} — low confidence ${matchPercent}%). The face in your photo doesn't match your ID. Please upload a clearer photo or retake the live photo.`,
-            'error'
-        );
-        confirmFaceBtn.style.display = 'none';
-    }
-}
-
-// Confirm face verification
-confirmFaceBtn.addEventListener('click', () => {
-    if (!faceMatchMeta) {
-        showVerificationStatus('Please complete face verification before confirming.', 'error');
-        return;
-    }
-    window.faceVerificationComplete = true;
-    updateFaceVerificationUI();
-
-    const setHidden = (id, name, value) => {
-        let el = document.getElementById(id);
-        if (!el) {
-            el = document.createElement('input');
-            el.type = 'hidden';
-            el.id = id;
-            el.name = name;
-            document.getElementById('patientForm').appendChild(el);
-        }
-        el.value = value;
-    };
-
-    // Ensure the form includes a hidden flag so the server knows face was confirmed
-    setHidden('hiddenFaceVerified', 'face_verified', '1');
-    setHidden('hiddenFaceLive1', 'face_live_1', JSON.stringify(faceMatchMeta.live1));
-    setHidden('hiddenFaceLive2', 'face_live_2', JSON.stringify(faceMatchMeta.live2));
-    setHidden('hiddenFaceId', 'face_id', JSON.stringify(faceMatchMeta.id));
-    setHidden('hiddenFaceD1', 'face_dist_1', String(faceMatchMeta.d1));
-    setHidden('hiddenFaceD2', 'face_dist_2', String(faceMatchMeta.d2));
-    setHidden('hiddenFaceDLive', 'face_live_dist', String(faceMatchMeta.dlive));
-
-    // Show success message
-    const modal = bootstrap.Modal.getInstance(document.getElementById('faceVerificationModal'));
-    modal.hide();
-
-    alert('Face verification complete! You can now submit your registration.');
-});
-
-// Initialize face models and start camera when modal opens
-document.getElementById('faceVerificationModal').addEventListener('show.bs.modal', async () => {
-    await loadFaceModels();
-    // auto-start camera for convenience
-    if (confirmFaceBtn) confirmFaceBtn.style.display = 'none';
-    if (verificationResult) verificationResult.innerHTML = '';
-    if (previewArea) previewArea.style.display = 'none';
-    firstLiveDescriptor = null;
-    secondLiveDescriptor = null;
-    faceMatchMeta = null;
-    startCamera();
-});
-
-// ========== OTP VERIFICATION SYSTEM ==========
-let verifiedEmail = null;
-
-const emailInput = document.getElementById('emailInput');
-const verifyEmailBtn = document.getElementById('verifyEmailBtn');
-const emailVerificationStatus = document.getElementById('emailVerificationStatus');
-
-if (verifyEmailBtn) {
-    verifyEmailBtn.classList.add('d-none');
-}
-
-const OTP_RESEND_COOLDOWN_MS = 60000;
-let otpSendInProgress = false;
-let lastOtpEmail = '';
-let lastOtpSentAt = 0;
-let otpDebounceId = null;
-let lastOtpNoticeAt = 0;
-
-function showOtpModalMessage(message, type = 'info', openModal = true) {
-    const otpModalEl = document.getElementById('otpVerificationModal');
-    const otpErrorMsg = document.getElementById('otpErrorMsg');
-    if (otpErrorMsg) {
-        otpErrorMsg.innerHTML = `<div class="alert alert-${type} mb-0 small">${message}</div>`;
-        setTimeout(() => {
-            if (otpErrorMsg) otpErrorMsg.innerHTML = '';
-        }, 4000);
-    }
-    if (openModal && otpModalEl) {
-        const modal = bootstrap.Modal.getOrCreateInstance(otpModalEl);
-        modal.show();
-    }
-}
-
-function cleanupModalBackdrops() {
-    const anyOpen = document.querySelector('.modal.show');
-    if (anyOpen) return;
-    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-    document.body.classList.remove('modal-open');
-    document.body.style.removeProperty('padding-right');
-}
-
-function resetRegistrationFormState() {
-    if (patientForm) patientForm.reset();
-
-    // Stop camera and clear face state
-    stopCamera();
-    window.faceVerificationComplete = false;
-    updateFaceVerificationUI();
-    capturedFaceImage = null;
-    capturedFaceDescriptor = null;
-    firstLiveDescriptor = null;
-    secondLiveDescriptor = null;
-    faceMatchMeta = null;
-    idPhotoDescriptor = null;
-    if (previewImage) previewImage.src = '';
-    if (previewArea) previewArea.style.display = 'none';
-    if (verificationResult) verificationResult.innerHTML = '';
-
-    // Clear email/OTP state
-    verifiedEmail = null;
-    emailInput.readOnly = false;
-    emailInput.value = '';
-    lastOtpEmail = '';
-    lastOtpSentAt = 0;
-    lastOtpNoticeAt = 0;
-    if (otpDebounceId) { clearTimeout(otpDebounceId); otpDebounceId = null; }
-    emailVerificationStatus.innerHTML = '';
-    const hiddenEmail = document.getElementById('hiddenVerifiedEmail');
-    if (hiddenEmail && hiddenEmail.parentNode) hiddenEmail.parentNode.removeChild(hiddenEmail);
-    const hiddenFace = document.getElementById('hiddenFaceVerified');
-    if (hiddenFace && hiddenFace.parentNode) hiddenFace.parentNode.removeChild(hiddenFace);
-
-    const otpInput = document.getElementById('otpInput');
-    const otpErrorMsg = document.getElementById('otpErrorMsg');
-    if (otpInput) { otpInput.value = ''; otpInput.disabled = false; }
-    if (otpErrorMsg) otpErrorMsg.innerHTML = '';
-
-    // Clear ID crop state
-    idCropDataUrl = null;
-    idCropImage = null;
-    idCropRect = null;
-    idCropDragging = false;
-    idCropStart = null;
-    idCropScale = 1;
-    idCropReady = false;
-    if (idCropCtx && idCropCanvas) {
-        idCropCtx.clearRect(0, 0, idCropCanvas.width, idCropCanvas.height);
-    }
-
-    // Clear field-specific errors and notes
-    if (idFile) {
-        idFile.value = '';
-        idFile.classList.remove('is-invalid');
-        idFile.dataset.qualityOk = '0';
-    }
-    if (fileError) fileError.classList.add('d-none');
-    if (fileNote) fileNote.classList.add('d-none');
-    if (idNumber) idNumber.classList.remove('is-invalid');
-    if (idError) idError.classList.add('d-none');
-    if (passwordError) passwordError.classList.add('d-none');
-    if (confirmPasswordError) confirmPasswordError.classList.add('d-none');
-    if (addressField) addressField.value = '';
-
-    // Return to Step 1 and reset step UI
-    step2.classList.add('d-none');
-    step1.classList.remove('d-none');
-    stepTabs[1].classList.add('disabled');
-    stepTabs[1].classList.remove('active');
-    stepTabs[0].classList.add('active');
-
-    cleanupModalBackdrops();
-}
-
-function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-const candidates = [
-    'auth/api/send-otp.php',
-    '/THESIS/LYINGIN/auth/api/send-otp.php',
-    '/THESIS/LYINGIN/auth/api/send-otp.php'
-];
-
-async function tryPostCandidates(candidateUrls, body) {
-    let lastError = null;
-    for (const url of candidateUrls) {
-        try {
-            console.log('Attempting OTP send to:', url);
-            const resp = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body
-            });
-            const text = await resp.text();
-            // If server returned HTML (404 page etc.) JSON.parse will throw and we'll treat it as failure
-            let data = null;
-            try { data = JSON.parse(text); } catch (e) { throw { url, status: resp.status, raw: text } }
-            if (!resp.ok) throw { url, status: resp.status, data };
-            return data;
-        } catch (err) {
-            console.warn('OTP attempt failed for', url, err);
-            lastError = err;
-        }
-    }
-    throw lastError || new Error('All candidate endpoints failed');
-}
-
-async function sendOtpForEmail(email, opts = {}) {
-    if (otpSendInProgress) return;
-    if (!isValidEmail(email)) {
-        showOtpModalMessage('Please enter a valid email address', 'danger');
-        return;
-    }
-    if (verifiedEmail && verifiedEmail === email) return;
-
-    const now = Date.now();
-    if (!opts.force && lastOtpEmail === email && (now - lastOtpSentAt) < OTP_RESEND_COOLDOWN_MS) {
-        if ((now - lastOtpNoticeAt) > OTP_RESEND_COOLDOWN_MS) {
-            showOtpModalMessage('OTP already sent. Please check your email.', 'info');
-            lastOtpNoticeAt = now;
-        }
-        showOTPModal(email);
-        return;
-    }
-
-    otpSendInProgress = true;
-    lastOtpEmail = email;
-
-    if (verifyEmailBtn) {
-        verifyEmailBtn.disabled = true;
-        verifyEmailBtn.textContent = 'Sending OTP...';
-    }
-    showOtpModalMessage('Sending OTP...', 'info');
-
-    try {
-        const data = await tryPostCandidates(candidates, 'email=' + encodeURIComponent(email) + '&user_type=patient');
-        if (data.status === 'success') {
-            lastOtpSentAt = Date.now();
-            showOTPModal(email);
-            showOtpModalMessage('OTP sent! Check your email.', 'success', false);
-        } else {
-            showOtpModalMessage(data.message || 'Failed to send OTP', 'danger');
-        }
-    } catch (error) {
-        console.error('Error sending OTP (all candidates failed):', error);
-        // If the server sent back raw HTML for a 404, include a helpful message
-        if (error && error.raw) console.log('Server response (raw):', error.raw);
-        showOtpModalMessage('Error sending OTP. Server endpoint not found or returned an error. Check console.', 'danger');
-    } finally {
-        otpSendInProgress = false;
-        if (verifyEmailBtn) {
-            verifyEmailBtn.disabled = false;
-            verifyEmailBtn.textContent = 'Verify';
-        }
-    }
-}
-
-function scheduleOtpSend() {
-    const email = emailInput.value.trim();
-    if (!email) {
-        emailVerificationStatus.innerHTML = '';
-        return;
-    }
-    if (verifiedEmail && verifiedEmail === email) return;
-
-    if (otpDebounceId) {
-        clearTimeout(otpDebounceId);
-    }
-    otpDebounceId = setTimeout(() => {
-        const currentEmail = emailInput.value.trim();
-        if (currentEmail === email) {
-            sendOtpForEmail(currentEmail);
-        }
-    }, 700);
-}
-
-emailInput.addEventListener('input', scheduleOtpSend);
-emailInput.addEventListener('blur', () => {
-    const email = emailInput.value.trim();
-    if (email) {
-        sendOtpForEmail(email);
-    }
-});
-
-function showEmailStatus(message, type) {
-    showOtpModalMessage(message, type);
-    emailVerificationStatus.innerHTML = '';
-}
-
-function showOTPModal(email) {
-    const otpModalEl = document.getElementById('otpVerificationModal');
-    const otpModal = bootstrap.Modal.getOrCreateInstance(otpModalEl);
-    
-    const otpForm = document.getElementById('otpForm');
-    const otpInput = document.getElementById('otpInput');
-    const otpErrorMsg = document.getElementById('otpErrorMsg');
-    const resendOtpBtn = document.getElementById('resendOtpBtn');
-    let otpVerifying = false;
-    
-    otpInput.value = '';
-    otpErrorMsg.innerHTML = '';
-    otpInput.disabled = false;
-    
-    const verifyOtp = async () => {
-        const otp = otpInput.value.trim();
-        
-        if (!otp || otp.length !== 6) {
-            otpErrorMsg.innerHTML = '<div class="alert alert-danger mb-0 small">Please enter a 6-digit OTP</div>';
-            return;
-        }
-        
-        if (otpVerifying) return;
-        otpVerifying = true;
-        otpInput.disabled = true;
-        
-        try {
-            const candidates = [
-                'auth/api/verify-otp.php',
-                '/THESIS/LYINGIN/auth/api/verify-otp.php',
-                '/THESIS/LYINGIN/auth/api/verify-otp.php'
-            ];
-
-            const verifyResp = await (async () => {
-                for (const url of candidates) {
-                    try {
-                        console.log('Attempting OTP verify to:', url);
-                        const resp = await fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                            body: 'email=' + encodeURIComponent(email) + '&otp=' + encodeURIComponent(otp)
-                        });
-                        const text = await resp.text();
-                        try { const data = JSON.parse(text); if (!resp.ok) throw { url, status: resp.status, data }; return data; } catch (e) { throw { url, status: resp.status, raw: text }; }
-                    } catch (err) {
-                        console.warn('OTP verify attempt failed for', url, err);
-                        continue;
-                    }
-                }
-                throw new Error('All OTP verify endpoints failed');
-            })();
-
-            const data = verifyResp;
-            
-            if (data.status === 'success') {
-                verifiedEmail = email;
-                // Don't disable the input (disabled inputs are not submitted). Use readOnly so the value is still posted.
-                emailInput.readOnly = true;
-                // Also keep a hidden input as a fallback to ensure the email is always submitted
-                let hiddenEmail = document.getElementById('hiddenVerifiedEmail');
-                if (!hiddenEmail) {
-                    hiddenEmail = document.createElement('input');
-                    hiddenEmail.type = 'hidden';
-                    hiddenEmail.id = 'hiddenVerifiedEmail';
-                    hiddenEmail.name = 'email';
-                    document.getElementById('patientForm').appendChild(hiddenEmail);
-                }
-                hiddenEmail.value = email;
-
-                showOtpModalMessage('Email verified successfully!', 'success', false);
-                setTimeout(() => { try { otpModal.hide(); } catch (e) {} }, 600);
-                
-                // Re-run validation to enable Next when all fields are valid
-                validateStep1Fields();
-            } else {
-                otpErrorMsg.innerHTML = '<div class="alert alert-danger mb-0 small">' + (data.message || 'Invalid OTP') + '</div>';
-                otpInput.disabled = false;
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            otpErrorMsg.innerHTML = '<div class="alert alert-danger mb-0 small">Error verifying OTP. Please try again.</div>';
-            otpInput.disabled = false;
-        } finally {
-            otpVerifying = false;
-        }
-    };
-
-    otpInput.oninput = () => {
-        const otp = otpInput.value.trim();
-        if (otp.length === 6 && !otpVerifying) {
-            verifyOtp();
-        }
-    };
-
-    if (resendOtpBtn) {
-        resendOtpBtn.onclick = () => {
-            sendOtpForEmail(email, { force: true });
-        };
-    }
-    
-    otpModal.show();
-    if (otpModalEl) {
-        otpModalEl.addEventListener('hidden.bs.modal', cleanupModalBackdrops, { once: true });
-    }
-}
-
-// Block form submission if email not verified OR face not verified
-document.getElementById('patientForm').addEventListener('submit', function(e) {
-    if (!verifiedEmail) {
-        e.preventDefault();
-        showEmailStatus('Please verify your email first before registering', 'danger');
-        return false;
-    }
-    
-    if (!window.faceVerificationComplete) {
-        e.preventDefault();
-        showFaceVerificationStatus('Please complete face verification before registering', 'danger');
-        return false;
-    }
-});
-
-</script>
+<!-- Patient registration logic -->
+<script src="assets/js/register-patient.js?v=20260226b"></script>
 
 </body>
 </html>
