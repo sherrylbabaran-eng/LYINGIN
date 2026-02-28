@@ -37,13 +37,8 @@ clinicForm.addEventListener('submit', e => {
     .then(data => {
         alert(data.message);
         if (data.status === 'success') {
-            clinicForm.reset();
-            // Return to Step 1
-            step2.classList.add('d-none');
-            step1.classList.remove('d-none');
-            stepTabs[1].classList.add('disabled');
-            stepTabs[1].classList.remove('active');
-            stepTabs[0].classList.add('active');
+            // send user back to login immediately
+            window.location.href = '/THESIS/LYINGIN/index.html?showLogin=1';
         }
     })
     .catch(err => {

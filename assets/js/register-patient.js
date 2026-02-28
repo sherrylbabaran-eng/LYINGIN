@@ -958,7 +958,8 @@ function passesSubmissionGuards() {
 
 function showPostRegisterModal(message) {
     if (postRegisterMessage) {
-        postRegisterMessage.textContent = message || 'Your account has been created.';
+        // inform user that they'll be sent to login after a moment
+        postRegisterMessage.textContent = (message || 'Your account has been created.') + ' You will be redirected to the login page shortly.';
     }
     if (!postRegisterModalEl) return;
     const modal = bootstrap.Modal.getOrCreateInstance(postRegisterModalEl);
@@ -1053,6 +1054,10 @@ patientForm.addEventListener('submit', e => {
                 submitBtn.textContent = 'Registered';
             }
             showPostRegisterModal(data.message || 'Registration successful.');
+            // redirect the user after showing the modal for a moment
+            setTimeout(() => {
+                window.location.href = 'index.html?showLogin=1';
+            }, 4000);
         } else {
             alert(data.message || 'Registration failed. Please try again.');
         }

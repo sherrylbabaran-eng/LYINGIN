@@ -341,12 +341,9 @@ document.getElementById('clinicForm').addEventListener('submit', function(e) {
     .then(data => {
         alert(data.message);
         if (data.status === "success") {
-            this.reset();
-            step2.classList.add('d-none');
-            step1.classList.remove('d-none');
-            stepTabs[1].classList.add('disabled');
-            stepTabs[1].classList.remove('active');
-            stepTabs[0].classList.add('active');
+            // after registration we want the user to log in
+            // redirect to main page and show the login modal via query param
+            window.location.href = 'index.html?showLogin=1';
         }
     })
     .catch(error => {

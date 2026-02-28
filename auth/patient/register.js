@@ -317,7 +317,7 @@ const registerAnotherBtn = document.getElementById('registerAnotherBtn');
 
 function showPostRegisterModal(message) {
     if (postRegisterMessage) {
-        postRegisterMessage.textContent = message || 'Your account has been created.';
+        postRegisterMessage.textContent = (message || 'Your account has been created.') + ' You will be redirected to the login page shortly.';
     }
     if (!postRegisterModalEl) return;
     const modal = bootstrap.Modal.getOrCreateInstance(postRegisterModalEl);
@@ -388,6 +388,10 @@ patientForm.addEventListener('submit', e => {
     .then(data => {
         if (data.status === 'success') {
             showPostRegisterModal(data.message || 'Registration successful.');
+            // automatically forward to login after a short delay so user isn't stuck
+            setTimeout(() => {
+                window.location.href = '/THESIS/LYINGIN/index.html?showLogin=1';
+            }, 4000);
         } else {
             alert(data.message || 'Registration failed. Please try again.');
         }
