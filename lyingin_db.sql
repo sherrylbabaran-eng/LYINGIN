@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 09, 2026 at 08:29 AM
+-- Generation Time: Mar 01, 2026 at 10:38 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -122,6 +122,10 @@ INSERT INTO `clinics` (`id`, `clinic_name`, `license_number`, `address`, `email`
 CREATE TABLE `notifications` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
+  `user_type` enum('patient','admin','superadmin','clinic') DEFAULT 'patient',
+  `type` varchar(50) DEFAULT 'info',
+  `title` varchar(255) DEFAULT NULL,
+  `icon` varchar(50) DEFAULT NULL,
   `message` varchar(255) NOT NULL,
   `is_read` tinyint(1) DEFAULT 0,
   `created_at` datetime DEFAULT current_timestamp()
@@ -131,8 +135,14 @@ CREATE TABLE `notifications` (
 -- Dumping data for table `notifications`
 --
 
-INSERT INTO `notifications` (`id`, `user_id`, `message`, `is_read`, `created_at`) VALUES
-(2, 1, 'Your next checkup is tomorrow at 9:00 AM.', 0, '2026-02-09 14:33:42');
+INSERT INTO `notifications` (`id`, `user_id`, `user_type`, `type`, `title`, `icon`, `message`, `is_read`, `created_at`) VALUES
+(2, 1, 'patient', 'info', NULL, NULL, 'Your next checkup is tomorrow at 9:00 AM.', 0, '2026-02-09 14:33:42'),
+(3, 1, 'superadmin', 'success', 'New Clinic Registered', 'mdi-hospital-building', 'A new lying-in clinic has been registered and is pending verification.', 0, '2026-03-01 14:15:32'),
+(4, 1, 'superadmin', 'warning', 'System Maintenance', 'mdi-cog', 'Scheduled system maintenance will occur this weekend.', 0, '2026-03-01 11:15:32'),
+(5, 1, 'superadmin', 'info', 'Monthly Report Available', 'mdi-chart-bar', 'The monthly statistics report for February 2026 is now available.', 0, '2026-02-28 16:15:32'),
+(9, 4, 'superadmin', 'success', 'New Clinic Registered', 'mdi-hospital-building', 'A new lying-in clinic has been registered and is pending verification.', 1, '2026-03-01 14:24:49'),
+(10, 4, 'superadmin', 'warning', 'System Maintenance', 'mdi-cog', 'Scheduled system maintenance will occur this weekend.', 1, '2026-03-01 11:24:49'),
+(11, 4, 'superadmin', 'info', 'Monthly Report Available', 'mdi-chart-bar', 'The monthly statistics report for February 2026 is now available.', 1, '2026-02-28 16:24:49');
 
 -- --------------------------------------------------------
 
@@ -360,6 +370,59 @@ INSERT INTO `regpatient` (`id`, `first_name`, `last_name`, `birthdate`, `gender`
 (2, 'Alessandra', 'Nicole', '2005-01-22', 'female', 'sedeg61473@helesco.com', '09652379023', '28 Lanciano Street, Imus, 4103, Philippines', 'sedeg61473', '$2y$10$ddSzNSsykKUUhdm/lgx0nuyCFPrsSc3At8tQPHjrwZf5e5a/DIDQ.', 'national', '5921430936295184', 'C:\\xampp\\htdocs\\thesis\\LYINGIN\\auth\\api/../../uploads/patients/id_69880f21a8d033.11873138_ntionl.jpg', '2026-02-08 04:20:49', 1, 1, NULL),
 (3, 'Alessandra', 'Nicole', '2005-01-22', 'female', 'modiya5932@codgal.com', '09652379023', 'Central Market Avenue, Dasmariñas, 4114, Philippines', 'modiya5932', '$2y$10$KbuH43XFSsA0YMrjUkyrVuKWysdnb8PmPBWZW6lnunpzHPP7R7QTe', 'national', '5921430936295184', 'C:\\xampp\\htdocs\\thesis\\LYINGIN\\auth\\api/../../uploads/patients/id_6989774c9177c0.85687341_ntionl.jpg', '2026-02-09 05:57:32', 1, 1, 'uploads/patients/30e9a542079217e5cb4dcd0c358986f0_1770619611.jpg');
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `superadmin`
+--
+
+CREATE TABLE `superadmin` (
+  `id` int(11) NOT NULL,
+  `username` varchar(100) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `superadmin`
+--
+
+INSERT INTO `superadmin` (`id`, `username`, `email`, `password`, `created_at`) VALUES
+(3, 'superadmin2', 'superadmin2@lyingin.local', '$2y$10$pRPMsXPJUaR8t/7F0qc1VesVYjc6wLaZGq1zjrbT/G.Rqv2ljdDC.', '2026-03-01 07:36:37'),
+(4, 'superadmin3', 'superadmin3@lyingin.local', '$2y$10$nCzaGF97ndZqvFpGeDRQre9onguNaWDeKEiVj2pdtj59LmHciEWxS', '2026-03-01 07:47:02');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `system_messages`
+--
+
+CREATE TABLE `system_messages` (
+  `id` int(11) NOT NULL,
+  `sender_id` int(11) NOT NULL,
+  `sender_type` enum('admin','superadmin','clinic','system') NOT NULL,
+  `sender_name` varchar(255) NOT NULL,
+  `recipient_id` int(11) NOT NULL,
+  `recipient_type` enum('admin','superadmin','clinic') NOT NULL,
+  `subject` varchar(255) NOT NULL,
+  `body` text DEFAULT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `system_messages`
+--
+
+INSERT INTO `system_messages` (`id`, `sender_id`, `sender_type`, `sender_name`, `recipient_id`, `recipient_type`, `subject`, `body`, `is_read`, `created_at`) VALUES
+(1, 2, 'admin', 'Admin User', 1, 'superadmin', 'Clinic Verification Request', 'Please review the newly registered clinic in Dasmarinas, Cavite.', 0, '2026-03-01 15:45:32'),
+(2, 0, 'system', 'System', 1, 'superadmin', 'Database Backup Complete', 'Automated database backup completed successfully.', 0, '2026-03-01 14:15:32'),
+(3, 2, 'admin', 'Admin User', 1, 'superadmin', 'Patient Report Issue', 'There is an issue with patient report generation that needs attention.', 0, '2026-03-01 12:15:32'),
+(4, 3, 'admin', 'Admin User', 4, 'superadmin', 'Clinic Verification Request', 'Please review the newly registered clinic in Dasmarinas, Cavite.', 1, '2026-03-01 15:54:58'),
+(5, 0, 'system', 'System', 4, 'superadmin', 'Database Backup Complete', 'Automated database backup completed successfully.', 1, '2026-03-01 14:24:58'),
+(6, 3, 'admin', 'Admin User', 4, 'superadmin', 'Patient Report Issue', 'There is an issue with patient report generation that needs attention.', 1, '2026-03-01 12:24:58');
+
 --
 -- Indexes for dumped tables
 --
@@ -456,6 +519,21 @@ ALTER TABLE `regpatient`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `superadmin`
+--
+ALTER TABLE `superadmin`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `email` (`email`);
+
+--
+-- Indexes for table `system_messages`
+--
+ALTER TABLE `system_messages`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_recipient` (`recipient_id`,`recipient_type`,`is_read`),
+  ADD KEY `idx_sender` (`sender_id`,`sender_type`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -475,7 +553,7 @@ ALTER TABLE `clinics`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
@@ -526,14 +604,20 @@ ALTER TABLE `regpatient`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
--- Constraints for dumped tables
+-- AUTO_INCREMENT for table `superadmin`
 --
+ALTER TABLE `superadmin`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
--- Constraints for table `notifications`
+-- AUTO_INCREMENT for table `system_messages`
 --
-ALTER TABLE `notifications`
-  ADD CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `patients` (`id`) ON DELETE CASCADE;
+ALTER TABLE `system_messages`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- Constraints for dumped tables
+--
 
 --
 -- Constraints for table `patient_appointments`
