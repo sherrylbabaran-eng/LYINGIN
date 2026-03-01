@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/security.php';
+require_once __DIR__ . '/mail-helper.php';
 
 header('Content-Type: application/json');
 
@@ -35,6 +36,48 @@ if ($envFile) {
     }
 }
 
+function sendResetEmailWithHelper($to_email, $reset_link, &$sendError = null) {
+    $sendError = null;
+    $subject = 'Password Reset - LYINGIN';
+    $html_body = "
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 20px auto; background-color: white; padding: 30px; border-radius: 8px; }
+            .button { display: inline-block; background-color: #0d6efd; color: white; padding: 12px 18px; text-decoration: none; border-radius: 4px; }
+            .muted { color: #777; font-size: 12px; margin-top: 15px; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <h2>Password Reset</h2>
+            <p>We received a request to reset your password.</p>
+            <p><a class='button' href='" . htmlspecialchars($reset_link) . "'>Reset Password</a></p>
+            <p class='muted'>This link expires in 30 minutes. If you did not request this, you can ignore this email.</p>
+        </div>
+    </body>
+    </html>
+    ";
+
+    if (sendMailWithPHPMailer($to_email, $subject, $html_body, $sendError)) {
+        return true;
+    }
+
+    $mailSent = @mail(
+        $to_email,
+        $subject,
+        "Reset your password using this link: {$reset_link}\nThis link expires in 30 minutes.",
+        'From: no-reply@localhost'
+    );
+
+    if (!$mailSent && !$sendError) {
+        $sendError = 'mail_function_failed';
+    }
+
+    return $mailSent;
+}
+
 // Database configuration
 $servername = "localhost";
 $db_username = "root";
@@ -55,19 +98,33 @@ if (!validateEmail($email)) {
     exit;
 }
 
-// Check if patient account exists
-$stmt = $conn->prepare("SELECT id FROM RegPatient WHERE email = ? LIMIT 1");
-if (!$stmt) {
-    echo json_encode(["status" => "error", "message" => "Database error"]);
-    $conn->close();
-    exit;
-}
-$stmt->bind_param("s", $email);
-$stmt->execute();
-$result = $stmt->get_result();
-$stmt->close();
+// Check if account exists (supports patient and clinic)
+$accountType = null;
+$accountQueries = [
+    'clinic' => "SELECT id FROM clinics WHERE email = ? LIMIT 1",
+    'patient' => "SELECT id FROM RegPatient WHERE email = ? LIMIT 1"
+];
 
-if ($result->num_rows === 0) {
+foreach ($accountQueries as $type => $query) {
+    $stmt = $conn->prepare($query);
+    if (!$stmt) {
+        echo json_encode(["status" => "error", "message" => "Database error"]);
+        $conn->close();
+        exit;
+    }
+
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $stmt->close();
+
+    if ($result->num_rows > 0) {
+        $accountType = $type;
+        break;
+    }
+}
+
+if (!$accountType) {
     // Do not leak account existence
     echo json_encode([
         "status" => "success",
@@ -83,10 +140,15 @@ $token_hash = hash('sha256', $token);
 // Use database time for expiry to avoid PHP/MySQL timezone mismatch
 $expires_at = null;
 
-// Clear existing tokens for this email
-$cleanup = $conn->prepare("DELETE FROM password_resets WHERE email = ?");
+// Store account identity in password_resets.email as "type|email"
+$identity = $accountType . '|' . $email;
+
+// Clear existing tokens for this email (legacy and typed identity)
+$cleanup = $conn->prepare("DELETE FROM password_resets WHERE email = ? OR email = ? OR email = ?");
 if ($cleanup) {
-    $cleanup->bind_param("s", $email);
+    $legacyClinicIdentity = 'clinic|' . $email;
+    $legacyPatientIdentity = 'patient|' . $email;
+    $cleanup->bind_param("sss", $email, $legacyClinicIdentity, $legacyPatientIdentity);
     $cleanup->execute();
     $cleanup->close();
 }
@@ -97,7 +159,7 @@ if (!$stmt) {
     $conn->close();
     exit;
 }
-$stmt->bind_param("ss", $email, $token_hash);
+$stmt->bind_param("ss", $identity, $token_hash);
 
 if (!$stmt->execute()) {
     echo json_encode(["status" => "error", "message" => "Failed to create reset token"]);
@@ -113,150 +175,18 @@ $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $basePath = rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'])), '/');
 $reset_link = $scheme . '://' . $host . $basePath . '/reset-password.html?token=' . urlencode($token);
 
-// SMTP helper
-function readSMTPResponse($socket) {
-    $response = '';
-    while ($line = fgets($socket, 1024)) {
-        $response .= $line;
-        if (substr($line, 3, 1) !== '-') {
-            break;
-        }
-    }
-    return trim($response);
-}
-
-function sendResetEmail($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $to_email, $reset_link) {
-    try {
-        $fromName = getenv('MAIL_FROM_NAME') ?: 'LYINGIN';
-        $secure = getenv('MAIL_SMTP_SECURE') ?: 'tls';
-        $protocol = ($secure === 'ssl') ? 'ssl://' : 'tcp://';
-        $use_tls = ($secure === 'tls');
-
-        $context = stream_context_create([
-            'ssl' => [
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-                'allow_self_signed' => true
-            ]
-        ]);
-
-        $socket = @stream_socket_client($protocol . $smtp_host . ':' . $smtp_port, $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
-        if (!$socket) {
-            error_log("SMTP Connection Error: $errstr (Code: $errno)");
-            return false;
-        }
-
-        readSMTPResponse($socket);
-        fwrite($socket, "EHLO smtp.example.com\r\n");
-        readSMTPResponse($socket);
-
-        if ($use_tls && (int)$smtp_port === 587) {
-            fwrite($socket, "STARTTLS\r\n");
-            $response = readSMTPResponse($socket);
-            if (strpos($response, '220') === false) {
-                fclose($socket);
-                return false;
-            }
-            stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
-            fwrite($socket, "EHLO smtp.example.com\r\n");
-            readSMTPResponse($socket);
-        }
-
-        fwrite($socket, "AUTH LOGIN\r\n");
-        $response = readSMTPResponse($socket);
-        if (strpos($response, '334') === false) {
-            fclose($socket);
-            return false;
-        }
-
-        fwrite($socket, base64_encode($smtp_user) . "\r\n");
-        $response = readSMTPResponse($socket);
-        if (strpos($response, '334') === false) {
-            fclose($socket);
-            return false;
-        }
-
-        fwrite($socket, base64_encode($smtp_pass) . "\r\n");
-        $response = readSMTPResponse($socket);
-        if (strpos($response, '235') === false) {
-            fclose($socket);
-            return false;
-        }
-
-        fwrite($socket, "MAIL FROM:<" . $smtp_user . ">\r\n");
-        readSMTPResponse($socket);
-
-        fwrite($socket, "RCPT TO:<" . $to_email . ">\r\n");
-        readSMTPResponse($socket);
-
-        fwrite($socket, "DATA\r\n");
-        readSMTPResponse($socket);
-
-        $message = "From: " . $fromName . " <" . $smtp_user . ">\r\n";
-        $message .= "To: " . $to_email . "\r\n";
-        $message .= "Subject: Password Reset - LYINGIN\r\n";
-        $message .= "MIME-Version: 1.0\r\n";
-        $message .= "Content-Type: text/html; charset=UTF-8\r\n\r\n";
-
-        $html_body = "
-        <html>
-        <head>
-            <style>
-                body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 0; }
-                .container { max-width: 600px; margin: 20px auto; background-color: white; padding: 30px; border-radius: 8px; }
-                .button { display: inline-block; background-color: #0d6efd; color: white; padding: 12px 18px; text-decoration: none; border-radius: 4px; }
-                .muted { color: #777; font-size: 12px; margin-top: 15px; }
-            </style>
-        </head>
-        <body>
-            <div class='container'>
-                <h2>Password Reset</h2>
-                <p>We received a request to reset your password.</p>
-                <p><a class='button' href='" . htmlspecialchars($reset_link) . "'>Reset Password</a></p>
-                <p class='muted'>This link expires in 30 minutes. If you did not request this, you can ignore this email.</p>
-            </div>
-        </body>
-        </html>
-        ";
-
-        $message .= $html_body . "\r\n.\r\n";
-        fwrite($socket, $message);
-        readSMTPResponse($socket);
-
-        fwrite($socket, "QUIT\r\n");
-        readSMTPResponse($socket);
-        fclose($socket);
-        return true;
-
-    } catch (Exception $e) {
-        error_log('SMTP Exception: ' . $e->getMessage());
-        return false;
-    }
-}
-
-$smtp_host = getenv('MAIL_SMTP_HOST') ?: 'smtp.gmail.com';
-$smtp_port = getenv('MAIL_SMTP_PORT') ?: 587;
-$smtp_user = getenv('MAIL_USERNAME') ?: '';
-$smtp_pass = getenv('MAIL_PASSWORD') ?: '';
-
-if (!$smtp_user || !$smtp_pass) {
-    echo json_encode([
-        "status" => "error",
-        "message" => "Email service not configured. Please contact support."
-    ]);
-    $conn->close();
-    exit;
-}
-
-if (sendResetEmail($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $email, $reset_link)) {
+$sendError = null;
+if (sendResetEmailWithHelper($email, $reset_link, $sendError)) {
     echo json_encode([
         "status" => "success",
         "message" => "If your account exists, a reset link has been sent to your email."
     ]);
 } else {
+    $detail = $sendError ? " (" . $sendError . ")" : "";
+    error_log('request-password-reset.php: reset email send failed for ' . $email . $detail);
     echo json_encode([
         "status" => "error",
-        "message" => "Failed to send reset email. Please try again later."
+        "message" => "Failed to send reset email. Please try again later." . $detail
     ]);
 }
 

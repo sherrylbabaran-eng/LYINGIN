@@ -200,12 +200,14 @@
         <small class="text-danger d-none" id="otpError">
             Invalid OTP
         </small>
+                <small class="text-success d-none" id="otpSuccess"></small>
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-primary w-100" id="verifyOtpBtn">
-          Verify
-        </button>
+                <div class="d-flex flex-column gap-2 w-100">
+                    <button class="btn btn-primary w-100" id="verifyOtpBtn" type="button">Verify</button>
+                    <button class="btn btn-outline-secondary w-100" id="resendOtpBtn" type="button">Resend OTP</button>
+                </div>
       </div>
 
     </div>
@@ -223,6 +225,11 @@ const nextBtn = document.getElementById('nextBtn');
 const prevBtn = document.getElementById('prevBtn');
 const stepTabs = document.querySelectorAll('#stepTabs .nav-link');
 const formError = document.getElementById('formError');
+const otpError = document.getElementById('otpError');
+const otpSuccess = document.getElementById('otpSuccess');
+const otpInput = document.getElementById('otpInput');
+const resendOtpBtn = document.getElementById('resendOtpBtn');
+let resendCooldownTimer = null;
 
 nextBtn.addEventListener('click', () => {
     const step1Fields = step1.querySelectorAll('input, textarea'); // all Step 1 inputs
@@ -367,24 +374,66 @@ document.getElementById('clinicForm').addEventListener('submit', function(e) {
         method: "POST",
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        alert(data.message);
-        if (data.requires_otp) {
-            const otpModal = new bootstrap.Modal(document.getElementById('otpModal'));
-            otpModal.show();
+    .then(async response => {
+        const raw = await response.text();
+        let data;
+
+        try {
+            data = JSON.parse(raw);
+        } catch {
+            throw new Error(`Invalid server response: ${raw.slice(0, 180)}`);
         }
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Server returned an error');
+        }
+
+        return data;
+    })
+    .then(data => {
+        if (data.status !== 'success') {
+            showError(data.message || 'Registration failed');
+            return;
+        }
+
+        if (data.mail_sent === false) {
+            const extra = data.mail_error ? ` (${data.mail_error})` : '';
+            showError((data.message || 'OTP delivery failed') + extra);
+        }
+
+        const requiresOtp = data.requires_otp === true || data.requires_otp === 'true' || data.requires_otp === 1 || data.requires_otp === '1' || /otp/i.test(data.message || '');
+
+        if (requiresOtp) {
+            openOtpModal();
+            return;
+        }
+
+        if (data.redirect) {
+            window.location.href = data.redirect;
+            return;
+        }
+
+        alert(data.message || 'Registration successful');
     })
     .catch(error => {
         console.error("Error:", error);
-        showError('Network error, please try again');
+        showError(error.message || 'Network error, please try again');
     });
 });
 
 document.getElementById("verifyOtpBtn").addEventListener("click", function() {
 
-    const otp = document.getElementById("otpInput").value.trim();
+    const otp = otpInput.value.trim();
     const email = document.querySelector('[name="email"]').value;
+
+    otpError.classList.add("d-none");
+    otpSuccess.classList.add("d-none");
+
+    if (!/^\d{6}$/.test(otp)) {
+        otpError.textContent = "Enter a valid 6-digit OTP";
+        otpError.classList.remove("d-none");
+        return;
+    }
 
     const formData = new FormData();
     formData.append("otp", otp);
@@ -400,19 +449,125 @@ document.getElementById("verifyOtpBtn").addEventListener("click", function() {
             alert("Account verified successfully!");
             window.location.href = "index.html?showLogin=1";
         } else {
-            document.getElementById("otpError").classList.remove("d-none");
+            otpError.textContent = data.message || "Invalid OTP";
+            otpError.classList.remove("d-none");
         }
     })
     .catch(() => {
-        alert("Verification failed. Try again.");
+        otpError.textContent = "Verification failed. Try again.";
+        otpError.classList.remove("d-none");
     });
 
 });
 
-const otpModalElement = document.getElementById('otpModal');
-otpModalElement.addEventListener('shown.bs.modal', function () {
-    document.getElementById('otpInput').focus();
+resendOtpBtn.addEventListener('click', function() {
+    const email = document.querySelector('[name="email"]').value.trim();
+
+    otpError.classList.add('d-none');
+    otpSuccess.classList.add('d-none');
+
+    if (!email) {
+        otpError.textContent = 'Email is missing. Please go back and enter email.';
+        otpError.classList.remove('d-none');
+        return;
+    }
+
+    resendOtpBtn.disabled = true;
+    resendOtpBtn.textContent = 'Sending...';
+
+    const formData = new FormData();
+    formData.append('email', email);
+
+    fetch('resend-clinic-otp.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const extra = data.mail_sent === false && data.mail_error ? ` (${data.mail_error})` : '';
+            otpSuccess.textContent = (data.message || 'OTP resent successfully') + extra;
+            otpSuccess.classList.remove('d-none');
+            startResendCooldown(30);
+            return;
+        }
+
+        otpError.textContent = data.message || 'Unable to resend OTP';
+        otpError.classList.remove('d-none');
+        resendOtpBtn.disabled = false;
+        resendOtpBtn.textContent = 'Resend OTP';
+    })
+    .catch(() => {
+        otpError.textContent = 'Network error while resending OTP';
+        otpError.classList.remove('d-none');
+        resendOtpBtn.disabled = false;
+        resendOtpBtn.textContent = 'Resend OTP';
+    });
 });
+
+function startResendCooldown(seconds) {
+    let remaining = seconds;
+
+    if (resendCooldownTimer) {
+        clearInterval(resendCooldownTimer);
+        resendCooldownTimer = null;
+    }
+
+    resendOtpBtn.disabled = true;
+    resendOtpBtn.textContent = `Resend OTP (${remaining}s)`;
+
+    resendCooldownTimer = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+            clearInterval(resendCooldownTimer);
+            resendCooldownTimer = null;
+            resendOtpBtn.disabled = false;
+            resendOtpBtn.textContent = 'Resend OTP';
+            return;
+        }
+
+        resendOtpBtn.textContent = `Resend OTP (${remaining}s)`;
+    }, 1000);
+}
+
+const otpModalElement = document.getElementById('otpModal');
+if (otpModalElement) {
+    otpModalElement.addEventListener('shown.bs.modal', function () {
+        document.getElementById('otpInput').focus();
+    });
+}
+
+function openOtpModal() {
+    const modalElement = document.getElementById('otpModal');
+    if (!modalElement) {
+        showError('OTP modal element is missing from page.');
+        return;
+    }
+
+    if (window.bootstrap && bootstrap.Modal) {
+        const otpModal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        otpModal.show();
+        return;
+    }
+
+    modalElement.style.display = 'block';
+    modalElement.classList.add('show');
+    modalElement.removeAttribute('aria-hidden');
+    modalElement.setAttribute('aria-modal', 'true');
+    document.body.classList.add('modal-open');
+
+    const existingBackdrop = document.getElementById('otpModalBackdrop');
+    if (!existingBackdrop) {
+        const backdrop = document.createElement('div');
+        backdrop.id = 'otpModalBackdrop';
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
+    }
+
+    setTimeout(() => {
+        document.getElementById('otpInput')?.focus();
+    }, 50);
+}
 
 // ===================== CAVITE BOUNDARIES =====================
 // Strict bounding box for Cavite

@@ -63,10 +63,25 @@ if ($result->num_rows === 0) {
 }
 
 $row = $result->fetch_assoc();
-$email = $row['email'];
+$storedIdentity = $row['email'];
+
+$targetType = 'patient';
+$email = $storedIdentity;
+
+if (strpos($storedIdentity, '|') !== false) {
+    [$parsedType, $parsedEmail] = explode('|', $storedIdentity, 2);
+    $parsedType = strtolower(trim($parsedType));
+    $parsedEmail = trim($parsedEmail);
+
+    if (in_array($parsedType, ['patient', 'clinic'], true) && $parsedEmail !== '') {
+        $targetType = $parsedType;
+        $email = $parsedEmail;
+    }
+}
 
 $hashed = password_hash($password, PASSWORD_DEFAULT);
-$update = $conn->prepare("UPDATE RegPatient SET password = ? WHERE email = ?");
+$targetTable = ($targetType === 'clinic') ? 'clinics' : 'RegPatient';
+$update = $conn->prepare("UPDATE {$targetTable} SET password = ? WHERE email = ?");
 if (!$update) {
     echo json_encode(["status" => "error", "message" => "Database error"]);
     $conn->close();
@@ -77,6 +92,13 @@ $update->bind_param("ss", $hashed, $email);
 if (!$update->execute()) {
     echo json_encode(["status" => "error", "message" => "Failed to update password"]);
     $update->close();
+    $conn->close();
+    exit;
+}
+
+if ($update->affected_rows === 0) {
+    $update->close();
+    echo json_encode(["status" => "error", "message" => "Account not found for this reset link"]);
     $conn->close();
     exit;
 }

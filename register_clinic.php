@@ -1,6 +1,79 @@
 <?php
 session_start();
 header('Content-Type: application/json');
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
+function loadEnvConfig() {
+    $candidates = [
+        __DIR__ . '/.env',
+        __DIR__ . '/auth/.env',
+        __DIR__ . '/auth/api/.env'
+    ];
+
+    foreach ($candidates as $envFile) {
+        if (!file_exists($envFile)) {
+            continue;
+        }
+
+        $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || strpos($line, '#') === 0 || strpos($line, '=') === false) {
+                continue;
+            }
+
+            [$key, $value] = explode('=', $line, 2);
+            $key = trim($key);
+            $value = trim($value);
+            $value = trim($value, "'\"");
+
+            if ($key !== '') {
+                putenv("{$key}={$value}");
+                $_ENV[$key] = $value;
+            }
+        }
+
+        return;
+    }
+}
+
+function sendClinicOtpEmail($email, $otp, &$sendError = null) {
+    $sendError = null;
+    $subject = 'Your Clinic Registration OTP';
+    $message = "
+        <div style='font-family: Arial, sans-serif; line-height: 1.5;'>
+            <h2>Clinic Registration OTP</h2>
+            <p>Your OTP is: <strong>{$otp}</strong></p>
+            <p>This OTP expires in 10 minutes.</p>
+        </div>
+    ";
+
+    $mailHelper = __DIR__ . '/auth/api/mail-helper.php';
+    if (file_exists($mailHelper)) {
+        require_once $mailHelper;
+        if (function_exists('sendMailWithPHPMailer')) {
+            if (sendMailWithPHPMailer($email, $subject, $message, $sendError)) {
+                return true;
+            }
+        }
+    }
+
+    $mailSent = @mail(
+        $email,
+        $subject,
+        "Your OTP is: {$otp}\nIt expires in 10 minutes.",
+        'From: no-reply@localhost'
+    );
+
+    if (!$mailSent && !$sendError) {
+        $sendError = 'mail_function_failed';
+    }
+
+    return $mailSent;
+}
+
+loadEnvConfig();
 
 try {
     $pdo = new PDO(
@@ -15,6 +88,25 @@ try {
 } catch (PDOException $e) {
     echo json_encode(["status"=>"error","message"=>"Database connection failed"]);
     exit;
+}
+
+function logOtpFallback($email, $otp, $otpExpires, $reason = 'mail_failed') {
+    $logDir = __DIR__ . '/logs';
+    if (!is_dir($logDir)) {
+        @mkdir($logDir, 0755, true);
+    }
+
+    $entry = sprintf(
+        "[%s] reason=%s email=%s otp=%s expires=%s%s",
+        date('Y-m-d H:i:s'),
+        $reason,
+        $email,
+        $otp,
+        $otpExpires,
+        PHP_EOL
+    );
+
+    @file_put_contents($logDir . '/clinic-otp-fallback.log', $entry, FILE_APPEND);
 }
 
 /* ================= REQUIRED ================= */
@@ -125,16 +217,23 @@ $stmt->execute([
 
 /* ================= SEND OTP ================= */
 
-mail(
-    $email,
-    "Your Clinic Registration OTP",
-    "Your OTP is: $otp\nIt expires in 10 minutes.",
-    "From: no-reply@localhost"
-);
+$sendError = null;
+$mailSent = sendClinicOtpEmail($email, $otp, $sendError);
+
+if (!$mailSent) {
+    $detail = $sendError ? " ({$sendError})" : '';
+    error_log("register_clinic.php: OTP mail failed for {$email}{$detail}. SMTP may be unavailable.");
+    logOtpFallback($email, $otp, $otpExpires, 'register_mail_failed');
+}
 
 echo json_encode([
     "status"=>"success",
-    "message"=>"Registration successful. OTP sent.",
-    "requires_otp"=>true
+    "message"=>$mailSent
+        ? "Registration submitted. OTP sent to your email. Verify OTP to activate your account."
+        : "Registration submitted. OTP generated but email delivery is unavailable on this server. Use resend after SMTP setup or check local fallback log.",
+    "requires_otp"=>true,
+    "mail_sent"=>$mailSent,
+    "mail_error"=>$mailSent ? null : ($sendError ?: 'unknown_mail_error'),
+    "pending_verification"=>true
 ]);
 exit;
