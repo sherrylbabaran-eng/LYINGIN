@@ -53,14 +53,14 @@
                   <span class="availability-status online"></span>
                 </div>
                 <div class="nav-profile-text">
-                  <p class="mb-1 text-black">David Greymaax</p>
+                  <p class="mb-1 text-black" id="adminName">Admin</p>
                 </div>
               </a>
               <div class="dropdown-menu navbar-dropdown" aria-labelledby="profileDropdown">
                 <a class="dropdown-item" href="#">
                   <i class="mdi mdi-cached me-2 text-success"></i> Activity Log </a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="#">
+                <a class="dropdown-item" href="#" id="signoutLink">
                   <i class="mdi mdi-logout me-2 text-primary"></i> Signout </a>
               </div>
             </li>
@@ -221,8 +221,8 @@
                     <img src="assets/images/dashboard/circle.svg" class="card-img-absolute" alt="circle-image" />
                     <h4 class="font-weight-normal mb-3">Monthly Status<i class="mdi mdi-chart-line mdi-24px float-end"></i>
                     </h4>
-                    <h2 class="mb-5">$ 15,0000</h2>
-                    <h6 class="card-text">Increased by 60%</h6>
+                    <h2 class="mb-5" id="totalClinics">0</h2>
+                    <h6 class="card-text" id="verifiedClinicsText">Verified clinics: 0</h6>
                   </div>
                 </div>
               </div>
@@ -232,8 +232,8 @@
                     <img src="assets/images/dashboard/circle.svg" class="card-img-absolute" alt="circle-image" />
                     <h4 class="font-weight-normal mb-3">Monthly Schedule<i class="mdi mdi-bookmark-outline mdi-24px float-end"></i>
                     </h4>
-                    <h2 class="mb-5">45,6334</h2>
-                    <h6 class="card-text">Decreased by 10%</h6>
+                    <h2 class="mb-5" id="monthlyAppointments">0</h2>
+                    <h6 class="card-text" id="pendingAppointmentsText">Pending appointments: 0</h6>
                   </div>
                 </div>
               </div>
@@ -243,12 +243,13 @@
                     <img src="assets/images/dashboard/circle.svg" class="card-img-absolute" alt="circle-image" />
                     <h4 class="font-weight-normal mb-3">Users<i class="mdi mdi-diamond mdi-24px float-end"></i>
                     </h4>
-                    <h2 class="mb-5">95,5741</h2>
-                    <h6 class="card-text">Increased by 5%</h6>
+                    <h2 class="mb-5" id="totalPatients">0</h2>
+                    <h6 class="card-text" id="verifiedPatientsText">Verified patients: 0</h6>
                   </div>
                 </div>
               </div>
             </div>
+            <div id="dashboardError" class="alert alert-danger d-none" role="alert"></div>
             <div class="row">
               <div class="col-md-7 grid-margin stretch-card">
                 <div class="card">
@@ -290,44 +291,7 @@
                         </thead>
                         <tbody>
                           <tr>
-                            <td>
-                              <img src="assets/images/faces/face1.jpg" class="me-2" alt="image"> WD-12345
-                            </td>
-                            <td> Fund is not recieved </td>
-                            <td>
-                              <label class="badge badge-gradient-success">DONE</label>
-                            </td>
-                            <td> Stickman </td>
-                          </tr>
-                          <tr>
-                            <td>
-                              <img src="assets/images/faces/face2.jpg" class="me-2" alt="image"> WD-12346
-                            </td>
-                            <td> High loading time </td>
-                            <td>
-                              <label class="badge badge-gradient-warning">PROGRESS</label>
-                            </td>
-                            <td> Man of steel </td>
-                          </tr>
-                          <tr>
-                            <td>
-                              <img src="assets/images/faces/face3.jpg" class="me-2" alt="image"> WD-12347
-                            </td>
-                            <td> Website down for one week </td>
-                            <td>
-                              <label class="badge badge-gradient-info">ON HOLD</label>
-                            </td>
-                            <td> Myke </td>
-                          </tr>
-                          <tr>
-                            <td>
-                              <img src="assets/images/faces/face4.jpg" class="me-2" alt="image"> WD-12348
-                            </td>
-                            <td> Loosing control on server </td>
-                            <td>
-                              <label class="badge badge-gradient-danger">REJECTED</label>
-                            </td>
-                            <td> Falldo </td>
+                            <td colspan="4" class="text-muted">Loading clinics...</td>
                           </tr>
                         </tbody>
                       </table>
@@ -366,7 +330,230 @@
     <script src="assets/js/jquery.cookie.js"></script>
     <!-- endinject -->
     <!-- Custom js for this page -->
-    <script src="assets/js/dashboard.js"></script>
     <!-- End custom js for this page -->
+    <script>
+      (function () {
+        const currentUserEndpoint = '../auth/api/current-user.php';
+        const adminDashboardEndpoint = '../auth/api/admin-dashboard.php';
+        const logoutEndpoint = '../auth/api/logout.php';
+
+        const adminNameEl = document.getElementById('adminName');
+        const signoutLinkEl = document.getElementById('signoutLink');
+        const dashboardErrorEl = document.getElementById('dashboardError');
+        const clinicsTableBody = document.querySelector('table.table tbody');
+
+        const totalClinicsEl = document.getElementById('totalClinics');
+        const verifiedClinicsTextEl = document.getElementById('verifiedClinicsText');
+        const monthlyAppointmentsEl = document.getElementById('monthlyAppointments');
+        const pendingAppointmentsTextEl = document.getElementById('pendingAppointmentsText');
+        const totalPatientsEl = document.getElementById('totalPatients');
+        const verifiedPatientsTextEl = document.getElementById('verifiedPatientsText');
+
+        function showError(message) {
+          dashboardErrorEl.textContent = message;
+          dashboardErrorEl.classList.remove('d-none');
+        }
+
+        function formatDateTime(value) {
+          if (!value) {
+            return 'N/A';
+          }
+
+          const date = new Date(value.replace(' ', 'T'));
+          if (Number.isNaN(date.getTime())) {
+            return value;
+          }
+
+          return date.toLocaleString();
+        }
+
+        function formatStatusBadge(statusValue) {
+          const normalizedStatus = String(statusValue || '').toLowerCase();
+          let badgeClass = 'badge-gradient-warning';
+
+          if (normalizedStatus === 'verified' || normalizedStatus === 'completed' || normalizedStatus === 'confirmed') {
+            badgeClass = 'badge-gradient-success';
+          } else if (normalizedStatus === 'cancelled') {
+            badgeClass = 'badge-gradient-danger';
+          } else if (normalizedStatus === 'pending verification') {
+            badgeClass = 'badge-gradient-info';
+          }
+
+          return '<label class="badge ' + badgeClass + '">' + (statusValue || 'Unknown') + '</label>';
+        }
+
+        function escapeHtml(value) {
+          return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
+
+        function renderClinics(clinics) {
+          if (!Array.isArray(clinics) || clinics.length === 0) {
+            clinicsTableBody.innerHTML = '<tr><td colspan="4" class="text-muted">No clinic records found.</td></tr>';
+            return;
+          }
+
+          clinicsTableBody.innerHTML = clinics.map(function (clinic) {
+            return [
+              '<tr>',
+              '<td><img src="assets/images/faces/face1.jpg" class="me-2" alt="image"> CL-' + clinic.id + '</td>',
+              '<td>' + escapeHtml(clinic.clinic_name || 'Unnamed Clinic') + '</td>',
+              '<td>' + formatStatusBadge(clinic.status) + '</td>',
+              '<td>' + escapeHtml(formatDateTime(clinic.last_update)) + '</td>',
+              '</tr>'
+            ].join('');
+          }).join('');
+        }
+
+        function renderMonthlyChart(payload) {
+          const canvas = document.getElementById('visit-sale-chart');
+          const legend = document.getElementById('visit-sale-chart-legend');
+          if (!canvas || !window.Chart) {
+            return;
+          }
+
+          legend.innerHTML = '';
+
+          new Chart(canvas, {
+            type: 'bar',
+            data: {
+              labels: payload.labels,
+              datasets: [{
+                label: 'Patient Registrations',
+                data: payload.data,
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    precision: 0
+                  }
+                }
+              },
+              plugins: {
+                legend: {
+                  display: true,
+                  position: 'bottom'
+                }
+              }
+            }
+          });
+        }
+
+        function renderScheduleChart(items) {
+          const canvas = document.getElementById('traffic-chart');
+          const legend = document.getElementById('traffic-chart-legend');
+          if (!canvas || !window.Chart) {
+            return;
+          }
+
+          legend.innerHTML = '';
+
+          const labels = items.map(function (item) {
+            return item.label;
+          });
+
+          const values = items.map(function (item) {
+            return item.value;
+          });
+
+          new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+              labels: labels,
+              datasets: [{
+                data: values,
+                borderWidth: 0
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  display: true,
+                  position: 'bottom'
+                }
+              }
+            }
+          });
+        }
+
+        function hydrateDashboard(data) {
+          const summary = data.summary || {};
+
+          totalClinicsEl.textContent = summary.total_clinics || 0;
+          verifiedClinicsTextEl.textContent = 'Verified clinics: ' + (summary.verified_clinics || 0);
+
+          monthlyAppointmentsEl.textContent = summary.monthly_appointments || 0;
+          pendingAppointmentsTextEl.textContent = 'Pending appointments: ' + (summary.pending_appointments || 0);
+
+          totalPatientsEl.textContent = summary.total_patients || 0;
+          verifiedPatientsTextEl.textContent = 'Verified patients: ' + (summary.verified_patients || 0);
+
+          const charts = data.charts || {};
+          renderMonthlyChart(charts.monthly_registrations || { labels: [], data: [] });
+          renderScheduleChart(charts.schedule_breakdown || []);
+          renderClinics(data.recent_clinics || []);
+        }
+
+        function fetchDashboardData() {
+          return fetch(adminDashboardEndpoint, { credentials: 'same-origin' })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error('Unable to load dashboard data.');
+              }
+              return response.json();
+            })
+            .then(function (payload) {
+              if (payload.status !== 'success' || !payload.data) {
+                throw new Error(payload.message || 'Invalid dashboard response.');
+              }
+              hydrateDashboard(payload.data);
+            });
+        }
+
+        function guardAdminSession() {
+          return fetch(currentUserEndpoint, { credentials: 'same-origin' })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error('Session unavailable');
+              }
+              return response.json();
+            })
+            .then(function (payload) {
+              const user = payload.user || {};
+              if (payload.status !== 'success' || user.type !== 'admin') {
+                window.location.href = '../index.html';
+                return;
+              }
+
+              adminNameEl.textContent = user.name || 'Admin';
+              fetchDashboardData().catch(function (error) {
+                showError(error.message || 'Failed to load dashboard.');
+              });
+            })
+            .catch(function () {
+              window.location.href = '../index.html';
+            });
+        }
+
+        signoutLinkEl.addEventListener('click', function (event) {
+          event.preventDefault();
+          window.location.href = logoutEndpoint;
+        });
+
+        guardAdminSession();
+      })();
+    </script>
   </body>
 </html>
