@@ -1,5 +1,9 @@
 (function ($) {
   'use strict';
+  
+  let barChartInstance = null;
+  let doughnutChartInstance = null;
+  
   if ($("#visit-sale-chart").length) {
     const ctx = document.getElementById('visit-sale-chart');
 
@@ -25,12 +29,12 @@
     const bgColor2 = ["rgba(54, 215, 232, 1"];
     const bgColor3 = ["rgba(255, 191, 150, 1)"];
 
-    new Chart(ctx, {
+    barChartInstance = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG'],
         datasets: [{
-          label: "CHN",
+          label: "Patients",
           borderColor: gradientStrokeViolet,
           backgroundColor: gradientStrokeViolet,
           fillColor: bgColor1,
@@ -39,12 +43,12 @@
           fill: false,
           borderWidth: 1,
           fill: 'origin',
-          data: [20, 40, 15, 35, 25, 50, 30, 20],
+          data: [0, 0, 0, 0, 0, 0, 0, 0],
           barPercentage: 0.5,
           categoryPercentage: 0.5,
         },
         {
-          label: "USA",
+          label: "Clinics",
           borderColor: gradientStrokeRed,
           backgroundColor: gradientStrokeRed,
           hoverBackgroundColor: gradientStrokeRed,
@@ -53,12 +57,12 @@
           fill: false,
           borderWidth: 1,
           fill: 'origin',
-          data: [40, 30, 20, 10, 50, 15, 35, 40],
+          data: [0, 0, 0, 0, 0, 0, 0, 0],
           barPercentage: 0.5,
           categoryPercentage: 0.5,
         },
         {
-          label: "UK",
+          label: "Appointments",
           borderColor: gradientStrokeBlue,
           backgroundColor: gradientStrokeBlue,
           hoverBackgroundColor: gradientStrokeBlue,
@@ -67,7 +71,7 @@
           fill: false,
           borderWidth: 1,
           fill: 'origin',
-          data: [70, 10, 30, 40, 25, 50, 15, 30],
+          data: [0, 0, 0, 0, 0, 0, 0, 0],
           barPercentage: 0.5,
           categoryPercentage: 0.5,
         }
@@ -150,12 +154,12 @@
     // const bgColor2 = ["rgba(255, 191, 150, 1"];
     // const bgColor3 = ["rgba(6, 185, 157, 1)"];
 
-    new Chart(ctx, {
+    doughnutChartInstance = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['Search Engines 30%', 'Direct Click 30%', 'Bookmarks Click 40%'],
+        labels: ['Pending 0%', 'Completed 0%', 'Cancelled 0%'],
         datasets: [{
-          data: [30, 30, 40],
+          data: [0, 0, 1],
           backgroundColor: [gradientStrokeBlue, gradientStrokeGreen, gradientStrokeRed],
           hoverBackgroundColor: [
             gradientStrokeBlue,
@@ -217,34 +221,89 @@
       todayHighlight: true,
     });
   }
+  const proBannerEl = document.querySelector('#proBanner');
+  const navbarEl = document.querySelector('.navbar');
+  const pageBodyWrapperEl = document.querySelector('.page-body-wrapper');
+
+  if (!proBannerEl) {
+    if (navbarEl) {
+      navbarEl.classList.add('fixed-top');
+      navbarEl.classList.remove('pt-5');
+      navbarEl.classList.remove('mt-3');
+    }
+    if (pageBodyWrapperEl) {
+      pageBodyWrapperEl.classList.remove('proBanner-padding-top');
+      pageBodyWrapperEl.classList.remove('pt-0');
+    }
+    return;
+  }
+
   if ($.cookie('purple-pro-banner') != "true") {
-    document.querySelector('#proBanner').classList.add('d-flex');
-    document.querySelector('.navbar').classList.remove('fixed-top');
+    if (proBannerEl) proBannerEl.classList.add('d-flex');
+    if (navbarEl) navbarEl.classList.remove('fixed-top');
   } else {
-    document.querySelector('#proBanner').classList.add('d-none');
-    document.querySelector('.navbar').classList.add('fixed-top');
+    if (proBannerEl) proBannerEl.classList.add('d-none');
+    if (navbarEl) navbarEl.classList.add('fixed-top');
   }
 
   if ($(".navbar").hasClass("fixed-top")) {
-    document.querySelector('.page-body-wrapper').classList.remove('pt-0');
-    document.querySelector('.navbar').classList.remove('pt-5');
+    if (pageBodyWrapperEl) pageBodyWrapperEl.classList.remove('pt-0');
+    if (navbarEl) navbarEl.classList.remove('pt-5');
   } else {
-    document.querySelector('.page-body-wrapper').classList.add('pt-0');
-    document.querySelector('.navbar').classList.add('pt-5');
-    document.querySelector('.navbar').classList.add('mt-3');
+    if (pageBodyWrapperEl) pageBodyWrapperEl.classList.add('pt-0');
+    if (navbarEl) navbarEl.classList.add('pt-5');
+    if (navbarEl) navbarEl.classList.add('mt-3');
 
   }
-  document.querySelector('#bannerClose').addEventListener('click', function () {
-    document.querySelector('#proBanner').classList.add('d-none');
-    document.querySelector('#proBanner').classList.remove('d-flex');
-    document.querySelector('.navbar').classList.remove('pt-5');
-    document.querySelector('.navbar').classList.add('fixed-top');
-    document.querySelector('.page-body-wrapper').classList.add('proBanner-padding-top');
-    document.querySelector('.navbar').classList.remove('mt-3');
-    var date = new Date();
-    date.setTime(date.getTime() + 24 * 60 * 60 * 1000);
-    $.cookie('purple-pro-banner', "true", {
-      expires: date
+  const bannerCloseEl = document.querySelector('#bannerClose');
+  if (bannerCloseEl) {
+    bannerCloseEl.addEventListener('click', function () {
+      if (proBannerEl) proBannerEl.classList.add('d-none');
+      if (proBannerEl) proBannerEl.classList.remove('d-flex');
+      if (navbarEl) navbarEl.classList.remove('pt-5');
+      if (navbarEl) navbarEl.classList.add('fixed-top');
+      if (pageBodyWrapperEl) pageBodyWrapperEl.classList.add('proBanner-padding-top');
+      if (navbarEl) navbarEl.classList.remove('mt-3');
+      var date = new Date();
+      date.setTime(date.getTime() + 24 * 60 * 60 * 1000);
+      $.cookie('purple-pro-banner', "true", {
+        expires: date
+      });
     });
+  }
+
+  // Listen for chart data updates from admin-dashboard.js
+  document.addEventListener('updateCharts', function(e) {
+    const { monthlyData, months, appointmentStats } = e.detail;
+
+    // Update bar chart (Status chart)
+    if (barChartInstance && monthlyData && months) {
+      barChartInstance.data.labels = months;
+      
+      const patientsData = monthlyData.map(d => d.patients);
+      const clinicsData = monthlyData.map(d => d.clinics);
+      const appointmentsData = monthlyData.map(d => d.appointments);
+      
+      barChartInstance.data.datasets[0].data = patientsData;
+      barChartInstance.data.datasets[1].data = clinicsData;
+      barChartInstance.data.datasets[2].data = appointmentsData;
+      
+      barChartInstance.update();
+    }
+
+    // Update doughnut chart (Scheduling chart)
+    if (doughnutChartInstance && appointmentStats) {
+      const { pending, completed, cancelled, pending_percent, completed_percent, cancelled_percent } = appointmentStats;
+      
+      doughnutChartInstance.data.labels = [
+        `Pending ${pending_percent}%`,
+        `Completed ${completed_percent}%`,
+        `Cancelled ${cancelled_percent}%`
+      ];
+      
+      doughnutChartInstance.data.datasets[0].data = [pending || 1, completed || 1, cancelled || 1];
+      doughnutChartInstance.update();
+    }
   });
+
 })(jQuery);
