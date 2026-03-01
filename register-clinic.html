@@ -166,19 +166,50 @@
                                 <button type="button" class="btn btn-outline-secondary" id="prevBtn">Back</button>
                                 <button type="submit" class="btn btn-primary btn-lg">Register Clinic</button>
                             </div>
-
                             <p class="text-center mt-3 text-muted">
                                 Already registered? <a href="login.php">Login here</a>
                             </p>
                         </div>
 
                     </form>
+                    
 
                 </div>
             </div>
 
         </div>
     </div>
+</div>
+
+<!-- OTP MODAL (OUTSIDE FORM) -->
+<div class="modal fade" id="otpModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Verify OTP</h5>
+      </div>
+
+      <div class="modal-body">
+        <p>An OTP has been sent to your email.</p>
+        <input type="text" 
+               id="otpInput" 
+               class="form-control text-center" 
+               maxlength="6"
+               placeholder="Enter 6-digit OTP">
+        <small class="text-danger d-none" id="otpError">
+            Invalid OTP
+        </small>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary w-100" id="verifyOtpBtn">
+          Verify
+        </button>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <!-- Bootstrap JS -->
@@ -332,23 +363,55 @@ document.getElementById('clinicForm').addEventListener('submit', function(e) {
 
     const formData = new FormData(this);
 
-    fetch("auth/api/register-clinic.php", {
+    fetch("register_clinic.php", {
         method: "POST",
         body: formData
     })
     .then(response => response.json())
     .then(data => {
         alert(data.message);
-        if (data.status === "success") {
-            // after registration we want the user to log in
-            // redirect to main page and show the login modal via query param
-            window.location .href = 'index.html?showLogin=1';
+        if (data.requires_otp) {
+            const otpModal = new bootstrap.Modal(document.getElementById('otpModal'));
+            otpModal.show();
         }
     })
     .catch(error => {
         console.error("Error:", error);
         showError('Network error, please try again');
     });
+});
+
+document.getElementById("verifyOtpBtn").addEventListener("click", function() {
+
+    const otp = document.getElementById("otpInput").value.trim();
+    const email = document.querySelector('[name="email"]').value;
+
+    const formData = new FormData();
+    formData.append("otp", otp);
+    formData.append("email", email);
+
+    fetch("otp-verify.php", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success") {
+            alert("Account verified successfully!");
+            window.location.href = "index.html?showLogin=1";
+        } else {
+            document.getElementById("otpError").classList.remove("d-none");
+        }
+    })
+    .catch(() => {
+        alert("Verification failed. Try again.");
+    });
+
+});
+
+const otpModalElement = document.getElementById('otpModal');
+otpModalElement.addEventListener('shown.bs.modal', function () {
+    document.getElementById('otpInput').focus();
 });
 
 // ===================== CAVITE BOUNDARIES =====================
