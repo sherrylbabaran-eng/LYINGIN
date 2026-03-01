@@ -498,7 +498,8 @@ map.on('click', function (e) {
 
 });
 
-map.scrollWheelZoom.setMinZoom(lockedZoom);
+map.setMinZoom(10.5); // Prevent zooming out too much
+map.setMaxZoom(18); // Prevent zooming in too much
 
 // Reverse Geocoding Function
 function getAddress(lat, lng) {
