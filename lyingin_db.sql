@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 01, 2026 at 10:50 AM
+-- Generation Time: Mar 02, 2026 at 01:11 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -20,6 +20,27 @@ SET time_zone = "+00:00";
 --
 -- Database: `lyingin_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admins`
+--
+
+CREATE TABLE `admins` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `username` varchar(100) NOT NULL,
+  `email` varchar(191) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `admins`
+--
+
+INSERT INTO `admins` (`id`, `username`, `email`, `password`, `created_at`) VALUES
+(1, 'admin', 'admin@lyingin.local', '$2y$10$ThPcOeQxlES.PD7L0wcxOeP8Z.OTQE1plfI92Ln8LUkUYCjEzR8qO', '2026-03-02 11:42:22');
 
 -- --------------------------------------------------------
 
@@ -111,7 +132,13 @@ INSERT INTO `clinics` (`id`, `clinic_name`, `license_number`, `address`, `email`
 (5, 'clinic1', '12345', 'aaa', 'tandicoalessandranicole@gmail.com', '096523379023', 'John Doe', 'nix', '$2y$10$GAS9KOnoSPid603ZDJT1rui89mw3BBseKrpIM3irgGqSOSLcjT4du', '', '123456789012', NULL, NULL, '2026-01-28 05:02:46', 'C:\\xampp\\htdocs\\THESIS\\LYINGIN\\auth\\api/../../uploads/clinics/1769576566_makabayan.png', 0, 'ea16c34fc31573fdc3344a7cc37e785ec351bc2086bea4ac523bab90ebb0ff2f', '2026-01-29 06:02:46'),
 (6, 'clinic1', '12345', 'aaa', 'tandicoalessandranicole@gmail.com', '096523379023', 'John Doe', 'nix', '$2y$10$rs5zUCSxQ7r9RT.OopCGwuEj6WL3.RbGEtA1X9vLvzWt83FclEvdC', '', '123456789012', NULL, NULL, '2026-01-28 05:02:47', 'C:\\xampp\\htdocs\\THESIS\\LYINGIN\\auth\\api/../../uploads/clinics/1769576567_makabayan.png', 0, NULL, NULL),
 (7, 'clinic1', '12345', 'a', 'tandicoalessandranicole@gmail.com', '096523379023', 'John Doe', 'nix', '$2y$10$nacLr/ctxv5OWk6/FtffNOMMfOLV1y0Mmav9Q.yoHvDrYHirzOuZm', '', '123456789012', NULL, NULL, '2026-01-28 05:05:20', 'C:\\xampp\\htdocs\\THESIS\\LYINGIN\\auth\\api/../../uploads/clinics/1769576720_makabayan.png', 1, NULL, NULL),
-(8, 'q', '121212', 'aa', 'deguzman.alessandranicole@ncst.edu.ph', '2121212', 'a', 'nix', '$2y$10$zZB0iKAyTsMUatc3ELIrLuB78WL3OPPHSrwBMko.aDmYDaVK/YgLO', '', '123321312331', NULL, NULL, '2026-01-28 05:12:35', 'C:\\xampp\\htdocs\\THESIS\\LYINGIN\\auth\\api/../../uploads/clinics/1769577155_BUTTON.png', 1, NULL, NULL);
+(8, 'q', '121212', 'aa', 'deguzman.alessandranicole@ncst.edu.ph', '2121212', 'a', 'nix', '$2y$10$zZB0iKAyTsMUatc3ELIrLuB78WL3OPPHSrwBMko.aDmYDaVK/YgLO', '', '123321312331', NULL, NULL, '2026-01-28 05:12:35', 'C:\\xampp\\htdocs\\THESIS\\LYINGIN\\auth\\api/../../uploads/clinics/1769577155_BUTTON.png', 1, NULL, NULL),
+(9, 'Sandra', '121321231', 'La Paz Homes 1, Cabezas, Cabezas (Palawit), Trece Martires, Cavite, Calabarzon, 4109, Philippines', 'sandra012205@gmail.com', '09652379023', 'aaa', 'aaa', '$2y$10$LbVnPKA6/RDsFuATUj50nOWhnODNNQQvTksE8dDPldMeoUbbh0y92', '', '592143093629', 14.269574, 120.889849, '2026-03-01 13:31:23', '0fdc733797757267e19666cb219a797e.png', 0, '140107', '2026-03-01 14:41:23'),
+(10, 'Sandra', '77777777777', 'MetroGate Trece Martires, Gregorio (Aliang), Trece Martires, Cavite, Calabarzon, 4109, Philippines', 'gosala6033@bultoc.com', '09652379023', 'ok', 'ok', '$2y$10$.nn5oqw04/Gjs6rJwI8opuT1sob83RTFB6hIFDvtLSVefAOEllGFC', '', '592143093629', 14.305506, 120.872683, '2026-03-01 13:49:56', '6377f24e7530de32cd4412b3897d177a.png', 0, '412470', '2026-03-01 14:59:56'),
+(11, 'niew', '1211212', 'De Ocampo (Quintana I), Trece Martires, Cavite, Calabarzon, 4109, Philippines', 'jolitah212@bultoc.com', '2121212', 'hey', 'eeee', '$2y$10$kR1sCE6TZ5j7P8o065WPgu5qT2wr4B7q2ZC.YWZiP2y97FefgqEzy', '', '12312323123', 14.302312, 120.84865, '2026-03-01 13:51:42', 'a84d352b28b9c593671ade1382cef38e.png', 0, '987288', '2026-03-01 15:01:42'),
+(12, 'yyyuy', '433242342', 'Pinagtipunan, General Trias, Cavite, Calabarzon, 4107, Philippines', 'lavid85683@creteanu.com', '2121212', 'seth', 'settings', '$2y$10$8J2xirKdHQeZLf0YuLNvGePhNje4e9UT5P.GUe.hG600is/YZw9dy', 'Passport', '54454545', 14.370834, 120.878863, '2026-03-01 14:01:17', '8fef0f23fa026c387c68e67b84923ca9.png', 0, '742224', '2026-03-01 15:11:17'),
+(13, 'uy', '32331313', 'Unable to retrieve address', 'tewil37151@creteanu.com', '43532324', 'ey', 'yeye', '$2y$10$YqJaty78EYyGbc0JrBQPnekCwgYdv8X.Fzn9JRrO9K7r2bLSNnowK', '', '665532323', 14.20028, 120.875839, '2026-03-01 14:08:36', '5a3bd83ae95c35c2a6d310afb6bbb2e6.png', 0, '729616', '2026-03-01 15:18:36'),
+(14, 'Sandrae', '777777777770', 'Unable to retrieve address', 'fivoj59081@creteanu.com', '3132313123', 'eya', 'era', '$2y$10$ij2wfPDwhDruaeWdQCoNB.pTQDU7kBoublBepnvg.JYQIdOajNi6K', '', '112332424', 14.120786, 120.920609, '2026-03-01 14:22:15', '3c271b85efe7c27e4eb07ab9232a0b2e.png', 1, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -390,7 +417,8 @@ CREATE TABLE `superadmin` (
 
 INSERT INTO `superadmin` (`id`, `username`, `email`, `password`, `created_at`) VALUES
 (3, 'superadmin2', 'superadmin2@lyingin.local', '$2y$10$pRPMsXPJUaR8t/7F0qc1VesVYjc6wLaZGq1zjrbT/G.Rqv2ljdDC.', '2026-03-01 07:36:37'),
-(4, 'superadmin3', 'superadmin3@lyingin.local', '$2y$10$nCzaGF97ndZqvFpGeDRQre9onguNaWDeKEiVj2pdtj59LmHciEWxS', '2026-03-01 07:47:02');
+(4, 'superadmin3', 'superadmin3@lyingin.local', '$2y$10$nCzaGF97ndZqvFpGeDRQre9onguNaWDeKEiVj2pdtj59LmHciEWxS', '2026-03-01 07:47:02'),
+(6, 'superadmin4', 'superadmin4@lyingin.local', '$2y$10$/d15g0uRtSM.jaStV9jx1egoxjoG02Zq870sPTSDWTu0oGUgbCWLi', '2026-03-02 11:12:45');
 
 -- --------------------------------------------------------
 
@@ -426,6 +454,13 @@ INSERT INTO `system_messages` (`id`, `sender_id`, `sender_type`, `sender_name`, 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `admins`
+--
+ALTER TABLE `admins`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `email` (`email`);
 
 --
 -- Indexes for table `audit_logs`
@@ -538,6 +573,12 @@ ALTER TABLE `system_messages`
 --
 
 --
+-- AUTO_INCREMENT for table `admins`
+--
+ALTER TABLE `admins`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
@@ -547,7 +588,7 @@ ALTER TABLE `audit_logs`
 -- AUTO_INCREMENT for table `clinics`
 --
 ALTER TABLE `clinics`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `notifications`
@@ -559,7 +600,7 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT for table `password_resets`
 --
 ALTER TABLE `password_resets`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `patients`
@@ -607,7 +648,7 @@ ALTER TABLE `regpatient`
 -- AUTO_INCREMENT for table `superadmin`
 --
 ALTER TABLE `superadmin`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `system_messages`

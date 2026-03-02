@@ -6,8 +6,12 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$isSuperAdmin = (($_SESSION['user_type'] ?? '') === 'superadmin') || (($_SESSION['role'] ?? '') === 'superadmin');
-if (!isset($_SESSION['user_id']) || !$isSuperAdmin) {
+$userType = $_SESSION['user_type'] ?? '';
+$userRole = $_SESSION['role'] ?? '';
+$isSuperAdmin = $userType === 'superadmin' || $userRole === 'superadmin';
+$isAdmin = $userType === 'admin' || $userRole === 'admin';
+
+if (!isset($_SESSION['user_id']) || (!$isSuperAdmin && !$isAdmin)) {
     http_response_code(403);
     echo json_encode([
         'status' => 'error',
@@ -31,27 +35,28 @@ if ($conn->connect_error) {
     exit;
 }
 
-$limit = max(1, min(100, intval($_GET['limit'] ?? 20)));
+$limitParam = isset($_GET['limit']) ? intval($_GET['limit']) : 0;
 
 $query = "SELECT actor_role, action, target_patient_id, created_at
           FROM audit_logs
-          ORDER BY created_at DESC
-          LIMIT ?";
+          ORDER BY created_at DESC";
 
-$stmt = $conn->prepare($query);
-if (!$stmt) {
+if ($limitParam > 0) {
+    $safeLimit = min(500, max(1, $limitParam));
+    $query .= " LIMIT " . $safeLimit;
+}
+
+$result = $conn->query($query);
+if (!$result) {
     http_response_code(500);
     echo json_encode([
         'status' => 'error',
-        'message' => 'Failed to prepare query'
+        'message' => 'Failed to fetch activity logs'
     ]);
     $conn->close();
     exit;
 }
 
-$stmt->bind_param('i', $limit);
-$stmt->execute();
-$result = $stmt->get_result();
 $rows = $result->fetch_all(MYSQLI_ASSOC);
 
 $logs = array_map(function ($row) {
@@ -70,6 +75,5 @@ echo json_encode([
     ]
 ]);
 
-$stmt->close();
 $conn->close();
 ?>
